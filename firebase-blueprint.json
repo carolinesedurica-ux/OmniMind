@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "A collection of files and extracted knowledge for a specific context (e.g. M&A Diligence)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "vertical": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "createdAt"]
+    },
+    "File": {
+      "title": "File",
+      "description": "Metadata for an uploaded and processed file",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "originalFilename": { "type": "string" },
+        "contentType": { "type": "string" },
+        "docType": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "processing", "completed", "failed"] },
+        "summary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "workspaceId", "originalFilename", "status"]
+    },
+    "TranscriptSegment": {
+      "title": "Transcript Segment",
+      "description": "A chunk of text from a file with temporal or spatial mapping",
+      "type": "object",
+      "properties": {
+        "fileId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "text": { "type": "string" },
+        "start": { "type": "string" },
+        "speaker": { "type": "string" }
+      }
+    },
+    "Risk": {
+      "title": "Risk",
+      "description": "An extracted risk from the documentation",
+      "type": "object",
+      "properties": {
+        "fileId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "title": { "type": "string" },
+        "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+        "rationale": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": "Workspace",
+      "description": "Top-level workspaces"
+    },
+    "/workspaces/{workspaceId}/files/{fileId}": {
+      "schema": "File",
+      "description": "Files within a workspace"
+    },
+    "/workspaces/{workspaceId}/segments/{segmentId}": {
+      "schema": "TranscriptSegment",
+      "description": "Transcript segments across files"
+    },
+    "/workspaces/{workspaceId}/risks/{riskId}": {
+      "schema": "Risk",
+      "description": "Extracted risks"
+    },
+    "/workspaces/{workspaceId}/entities/{entityId}": {
+      "schema": "object",
+      "description": "Extracted entities"
+    },
+    "/workspaces/{workspaceId}/queries/{queryId}": {
+      "schema": "object",
+      "description": "User queries and AI answers"
+    }
+  }
+}

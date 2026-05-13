@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true);
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Connection Test Document
+    match /test/connection {
+      allow read: if isSignedIn();
+    }
+
+    // --- WORKSPACES ---
+    match /workspaces/{workspaceId} {
+      function isValidWorkspace(data) {
+        return data.keys().hasAll(['name', 'ownerId', 'createdAt']) &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+               data.ownerId == request.auth.uid &&
+               data.createdAt == request.time;
+      }
+
+      // Use a more defensive list rule that won't fail if ownerId is missing on a document
+      allow list: if isSignedIn() && resource.data.get('ownerId', null) == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.get('ownerId', null) == request.auth.uid && isValidId(workspaceId);
+      
+      allow create: if isSignedIn() && isValidWorkspace(incoming()) && isValidId(workspaceId);
+      
+      allow update: if isSignedIn() && isValidId(workspaceId) && 
+                    existing().get('ownerId', null) == request.auth.uid &&
+                    incoming().get('ownerId', null) == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'vertical']);
+
+      allow delete: if isSignedIn() && existing().get('ownerId', null) == request.auth.uid && isValidId(workspaceId);
+
+      // --- SUB-RESOURCES ---
+      // Pillar 1: Relational Sync (The Master Gate)
+      function canAccessWorkspace() {
+        return get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+      }
+
+      match /files/{fileId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+      match /segments/{segmentId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+      match /entities/{entityId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+      match /risks/{riskId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+      match /queries/{queryId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+      match /briefs/{briefId} {
+        allow read, write: if isVerified() && canAccessWorkspace();
+      }
+    }
+  }
+}
+

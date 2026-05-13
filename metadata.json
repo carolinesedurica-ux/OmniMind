@@ -1,0 +1,6 @@
+{
+  "name": "Omni Mind",
+  "description": "An AI-powered multimodal knowledge orchestrator for analyzing documents, videos, and audio files to extract insights, entities, and risks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
