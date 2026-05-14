@@ -42,7 +42,7 @@ export interface IndexingResult {
 export const ingestFile = async (base64: string, mimeType: string): Promise<IngestionResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash",
     contents: [{
       role: 'user',
       parts: [
@@ -118,7 +118,7 @@ export const ingestFile = async (base64: string, mimeType: string): Promise<Inge
 export const indexData = async (ingestionJson: string): Promise<IndexingResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash",
     contents: [{
       role: 'user',
       parts: [{
@@ -201,7 +201,7 @@ export const indexData = async (ingestionJson: string): Promise<IndexingResult> 
 export const askWorkspace = async (question: string, context: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash",
     contents: [{
       role: 'user',
       parts: [{
@@ -238,11 +238,20 @@ export const askWorkspace = async (question: string, context: string): Promise<a
 export const generateExecutiveBrief = async (workspaceContext: string, focus?: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-pro",
     contents: [{
       role: 'user',
       parts: [{
-        text: `Produce an executive brief for a leadership team.\nFOCUS: ${focus || 'General executive summary'}\n\nWORKSPACE CONTEXT:\n${workspaceContext.slice(0, 80000)}\n\nRespond ONLY with a JSON object.`
+        text: `You are the OmniMind Strategic Briefing Agent. 
+        Produce a high-precision executive brief for a leadership team based on the following raw data.
+        Perform a rigorous risk audit and identify mission-critical recommended actions.
+        
+        FOCUS: ${focus || 'General executive summary'}
+        
+        WORKSPACE CONTEXT:
+        ${workspaceContext.slice(0, 1000000)}
+        
+        Respond ONLY with a JSON object.`
       }]
     }],
     config: {
