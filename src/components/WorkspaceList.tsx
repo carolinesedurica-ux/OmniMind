@@ -101,75 +101,82 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex items-end justify-between mb-16 border-b-2 border-black pb-8">
+    <div className="max-w-7xl mx-auto py-10">
+      <div className="flex items-end justify-between mb-16 border-b border-white/5 pb-10">
         <div>
-          <span className="monoscale text-[10px] font-black text-black/30 uppercase tracking-[0.4em] block mb-2">Available_Clusters</span>
-          <h2 className="text-5xl font-black tracking-tighter uppercase leading-none">Intelligence Nodes</h2>
+          <span className="monoscale text-[10px] font-medium text-white/30 uppercase tracking-[0.5em] block mb-3">Available_Clusters</span>
+          <h2 className="text-6xl font-bold tracking-tighter uppercase leading-none text-white">Global Nodes</h2>
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="bg-black text-white px-8 py-4 rounded-none font-black text-[10px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+          className="bg-cyan text-black px-10 py-5 rounded-xl font-bold text-[10px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all flex items-center gap-4 glow-cyan"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
           Initialize Cluster
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {workspaces.map((ws, idx) => (
           <motion.button
             key={ws.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
             onClick={() => onSelect(ws.id)}
-            className="group flex flex-col h-[320px] bg-white border-r border-b border-black p-8 text-left hover:bg-black hover:text-white transition-colors duration-300 relative overflow-hidden"
+            className="group glass-panel p-10 text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 flex flex-col h-[360px] relative overflow-hidden"
           >
-            <div className="absolute top-4 right-4 monoscale text-[10px] font-black opacity-20 group-hover:opacity-40 tracking-widest uppercase">
-              ID_{ws.id.slice(0, 8)}
+            <div className="absolute top-0 right-0 p-1 bg-white/5 monoscale text-[8px] opacity-20 group-hover:opacity-100 transition-opacity">
+              {ws.id.slice(0, 8)}
             </div>
             
-            <div className="mb-8">
-              <span className="monoscale text-[9px] font-black border border-current px-2 py-0.5 uppercase tracking-widest mb-4 inline-block">
+            {/* Hover Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            
+            <div className="mb-10 relative">
+              <span className="monoscale text-[9px] font-bold text-cyan border border-cyan/30 px-3 py-1 rounded-md uppercase tracking-widest mb-6 inline-block bg-cyan/5">
                 {ws.vertical?.replace('-', '_') || 'GENERAL'}
               </span>
-              <h3 className="text-3xl font-black tracking-tighter uppercase leading-tight line-clamp-2">
+              <h3 className="text-4xl font-bold tracking-tighter uppercase leading-none text-white group-hover:text-cyan transition-colors line-clamp-2">
                 {ws.name}
               </h3>
             </div>
             
-            <p className="text-sm font-medium opacity-60 line-clamp-3 mb-auto italic serif leading-relaxed">
+            <p className="text-sm font-medium text-white/40 line-clamp-3 mb-auto leading-relaxed tracking-tight group-hover:text-white/60 transition-colors">
               {ws.description}
             </p>
             
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-black/10 group-hover:border-white/20">
+            <div className="flex items-center justify-between mt-10 pt-8 border-t border-white/5 relative z-10">
               <div className="flex flex-col">
-                <span className="monoscale text-[9px] opacity-40 uppercase tracking-widest">Commissioned</span>
-                <span className="monoscale text-[10px] font-black text-black group-hover:text-white">
+                <span className="monoscale text-[8px] text-white/20 uppercase tracking-widest">Status: ACTIVE</span>
+                <span className="monoscale text-[10px] font-medium text-white/40 group-hover:text-white transition-colors">
                   {ws.createdAt ? new Date(ws.createdAt.seconds * 1000).toLocaleDateString() : 'ONLINE'}
                 </span>
               </div>
-              <ArrowRight className="w-6 h-6 transform group-hover:translate-x-2 transition-transform duration-300" />
+              <div className="p-3 rounded-full bg-white/5 group-hover:bg-cyan group-hover:text-black transition-all">
+                <ArrowRight className="w-5 h-5" />
+              </div>
             </div>
-            
-            <div className="absolute -bottom-4 -right-4 w-24 h-24 border border-black/5 rounded-full group-hover:border-white/10 transition-colors" />
           </motion.button>
         ))}
         
         {workspaces.length === 0 && !isCreating && (
-          <div className="col-span-full py-40 text-center border-r border-b border-black bg-black/5 flex flex-col items-center justify-center">
-            <Activity className="w-16 h-16 mb-8 opacity-10 animate-pulse" />
-            <p className="monoscale text-[14px] font-black tracking-[0.3em] uppercase opacity-30 mb-8 max-w-md mx-auto">
-              No active clusters detected. Neural core is idle.
-            </p>
-            <button 
-              onClick={() => setIsCreating(true)}
-              className="bg-black text-white px-10 py-5 rounded-none font-black text-[11px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
-            >
-              <Plus className="w-5 h-5" />
-              Initialize First Cluster
-            </button>
+          <div className="col-span-full py-40 glass-panel flex flex-col items-center justify-center space-y-10">
+            <div className="relative">
+              <div className="absolute inset-0 bg-cyan/10 blur-3xl rounded-full" />
+              <Activity className="w-20 h-20 text-white/10 relative animate-pulse" />
+            </div>
+            <div className="text-center space-y-4">
+              <p className="monoscale text-[14px] font-medium tracking-[0.4em] uppercase text-white/20">
+                No active neural clusters detected.
+              </p>
+              <button 
+                onClick={() => setIsCreating(true)}
+                className="bg-white/5 text-white/60 px-12 py-5 rounded-2xl hover:bg-white/10 transition-all border border-white/10 monoscale text-[11px] font-medium tracking-[0.3em]"
+              >
+                Launch Protocol_Alpha
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -181,73 +188,77 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 bg-base/90 backdrop-blur-xl flex items-center justify-center z-[100] p-6"
           >
             <motion.div 
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="bg-[#F0F0EE] rounded-none border-2 border-black p-12 max-w-xl w-full shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-panel p-16 max-w-2xl w-full shadow-2xl relative overflow-hidden"
             >
-              <div className="mb-10">
-                <span className="monoscale text-[10px] font-black text-black/30 uppercase tracking-[0.4em] block mb-2">Protocol_Initialize</span>
-                <h3 className="text-4xl font-black tracking-tighter uppercase">Provision Node</h3>
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan/50 to-transparent" />
+              
+              <div className="mb-12">
+                <span className="monoscale text-[10px] font-medium text-white/20 uppercase tracking-[0.5em] block mb-4">Neural_Provisioning</span>
+                <h3 className="text-5xl font-bold tracking-tighter uppercase text-white">Initialize Node</h3>
               </div>
               
               {error && (
-                <div className="mb-8 p-5 bg-black text-white flex items-start gap-4">
-                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
-                  <p className="text-[11px] font-black monoscale uppercase leading-tight">{error}</p>
+                <div className="mb-10 p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl flex items-start gap-4">
+                  <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium uppercase tracking-tight leading-relaxed">{error}</p>
                 </div>
               )}
 
-              <form onSubmit={handleCreate} className="space-y-8">
-                <div className="space-y-2">
-                  <label className="monoscale text-[10px] font-black uppercase tracking-widest opacity-40">Cluster_Label</label>
+              <form onSubmit={handleCreate} className="space-y-10">
+                <div className="space-y-4">
+                  <label className="monoscale text-[9px] font-medium uppercase tracking-[0.4em] text-white/20 ml-2">Cluster_Identifier</label>
                   <input 
                     autoFocus
                     required
-                    placeholder="PROJECT_OMEGA_DILIGENCE"
+                    placeholder="ALPHA_INTEL_STREAM"
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
-                    className="w-full bg-white p-5 rounded-none border-2 border-black focus:outline-none focus:bg-white transition-colors monoscale font-black uppercase placeholder:opacity-20"
+                    className="w-full bg-white/5 p-6 rounded-2xl border border-white/10 focus:border-cyan/50 focus:outline-none transition-all monoscale font-medium text-white uppercase placeholder:opacity-20"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="monoscale text-[10px] font-black uppercase tracking-widest opacity-40">Operational_Strategy</label>
-                  <select 
-                    value={newVertical}
-                    disabled={isActivating}
-                    onChange={e => setNewVertical(e.target.value)}
-                    className="w-full bg-white p-5 rounded-none border-2 border-black focus:outline-none appearance-none monoscale font-black uppercase"
-                  >
-                    <option value="m&a">M&A / Corporate_Transaction</option>
-                    <option value="legal">Forensic_Legal</option>
-                    <option value="scientific">R&D_Deep_Science</option>
-                    <option value="supply-chain">Logistics_Log</option>
-                    <option value="general">Standard_Intel</option>
-                  </select>
+                <div className="space-y-4">
+                  <label className="monoscale text-[9px] font-medium uppercase tracking-[0.4em] text-white/20 ml-2">Logical_Framework</label>
+                  <div className="relative">
+                    <select 
+                      value={newVertical}
+                      disabled={isActivating}
+                      onChange={e => setNewVertical(e.target.value)}
+                      className="w-full bg-white/5 p-6 rounded-2xl border border-white/10 focus:border-cyan/50 focus:outline-none appearance-none monoscale font-medium text-white uppercase"
+                    >
+                      <option value="m&a" className="bg-[#111]">M&A_TRANSACTION</option>
+                      <option value="legal" className="bg-[#111]">FORENSIC_LEGAL</option>
+                      <option value="scientific" className="bg-[#111]">DEEP_SCIENCE</option>
+                      <option value="supply-chain" className="bg-[#111]">SUPPLY_CHAIN</option>
+                      <option value="general" className="bg-[#111]">STANDARD_INTEL</option>
+                    </select>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                      <ArrowRight className="w-5 h-5 rotate-90" />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-4 pt-4">
+                <div className="flex gap-6 pt-6">
                   <button 
                     type="button"
                     disabled={isActivating}
                     onClick={() => setIsCreating(false)}
-                    className="flex-1 px-4 py-5 rounded-none border-2 border-black monoscale text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-50"
+                    className="flex-1 px-8 py-5 rounded-2xl border border-white/10 monoscale text-[10px] font-medium uppercase tracking-widest text-white/40 hover:bg-white/5 transition-all disabled:opacity-50"
                   >
-                    Abort
+                    Abort_Protocol
                   </button>
                   <button 
                     type="submit"
                     disabled={isActivating || !newName}
-                    className="flex-1 bg-black text-white px-4 py-5 rounded-none monoscale text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                    className="flex-1 bg-cyan text-black px-8 py-5 rounded-2xl font-bold monoscale text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 glow-cyan"
                   >
                     {isActivating ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Provisioning...
-                      </>
-                    ) : 'Initialize'}
+                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    ) : 'Initialize_Node'}
                   </button>
                 </div>
               </form>

@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import WorkspaceList from './components/WorkspaceList';
 import WorkspaceDetail from './components/WorkspaceDetail';
+import AtmosphericBackground from './components/AtmosphericBackground';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -53,14 +54,17 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#E4E3E0]">
+      <div className="h-screen w-full flex items-center justify-center bg-base">
         <motion.div 
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="flex flex-col items-center gap-4"
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="flex flex-col items-center gap-6"
         >
-          <div className="w-12 h-12 border-2 border-black border-t-transparent rounded-full animate-spin" />
-          <span className="monoscale text-black/40 text-[10px] font-bold tracking-[0.2em] uppercase">Initializing Neural Core...</span>
+          <div className="relative">
+            <div className="absolute inset-0 bg-cyan/20 blur-2xl rounded-full" />
+            <Activity className="w-16 h-16 text-cyan relative animate-pulse" />
+          </div>
+          <span className="monoscale text-cyan/40 text-[10px] font-medium tracking-[0.4em] uppercase">Initializing Neural Core...</span>
         </motion.div>
       </div>
     );
@@ -68,49 +72,58 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#141414]">
+      <div className="h-screen w-full flex items-center justify-center bg-base overflow-hidden relative">
+        {/* Background Atmospheric Glows */}
+        <div className="absolute top-0 -left-1/4 w-[50%] h-[50%] bg-cyan/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 -right-1/4 w-[50%] h-[50%] bg-violet/5 blur-[120px] rounded-full" />
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl w-full px-8 py-12 flex flex-col items-center text-white"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-xl w-full px-8 py-16 flex flex-col items-center text-white relative z-10"
         >
-          <div className="mb-12 relative">
-            <div className="absolute -inset-4 bg-white/5 blur-xl rounded-full" />
-            <Activity className="w-20 h-20 text-white relative" />
+          <div className="mb-12 relative group">
+            <div className="absolute -inset-8 bg-cyan/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className="lathed-border p-8 rounded-3xl bg-white/5 backdrop-blur-md relative overflow-hidden">
+               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan/50 to-transparent" />
+               <Activity className="w-20 h-20 text-cyan" />
+            </div>
           </div>
-          <h1 className="text-6xl font-black tracking-tighter mb-6 uppercase text-center">OmniMind</h1>
-          <p className="text-white/50 mb-12 max-w-sm text-center italic serif text-lg leading-relaxed">
-            Expose the intelligence hidden in your corporate dark data. Video recordings, technical manuals, and audio logs, synthesized in one neural matrix.
+          
+          <h1 className="text-7xl font-black tracking-tighter mb-4 uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">OmniMind</h1>
+          <p className="text-white/40 mb-12 max-w-sm text-center font-medium text-sm leading-relaxed tracking-tight">
+            Advanced neural orchestration for enterprise dark data. Synthesize multi-dimensional records into actionable intelligence.
           </p>
           
-          <div className="w-full space-y-4">
+          <div className="w-full space-y-4 max-w-xs">
             <button 
               onClick={handleSignIn}
-              className="w-full bg-white text-black py-5 rounded-none font-black text-xs tracking-[0.2em] uppercase hover:bg-white/90 transition-all flex items-center justify-center gap-4 border-2 border-white group"
+              className="w-full bg-white text-black py-5 rounded-xl font-bold text-xs tracking-[0.2em] uppercase hover:bg-cyan hover:text-black transition-all flex items-center justify-center gap-4 group lathed-border relative overflow-hidden"
             >
-              Authorize Access
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="relative z-10">Authorize Access</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
             </button>
 
             {authError && (
-              <div className="p-4 bg-red-500/10 border border-red-500 text-red-500 text-[10px] monoscale font-black uppercase tracking-widest text-center">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] monoscale font-medium tracking-widest text-center rounded-xl backdrop-blur-sm">
                 {authError}
               </div>
             )}
           </div>
           
-          <div className="mt-16 grid grid-cols-3 gap-8 w-full border-t border-white/10 pt-8 opacity-40">
+          <div className="mt-20 grid grid-cols-3 gap-12 w-full border-t border-white/5 pt-12">
             <div className="text-center">
-              <span className="block text-[20px] font-bold tracking-tight">1.5M</span>
-              <span className="monoscale text-[9px] uppercase tracking-widest">Context Window</span>
+              <span className="block text-2xl font-bold tracking-tighter text-white">1.5M</span>
+              <span className="monoscale text-[8px] uppercase tracking-[0.3em] text-white/30">Context</span>
             </div>
             <div className="text-center">
-              <span className="block text-[20px] font-bold tracking-tight">Native</span>
-              <span className="monoscale text-[9px] uppercase tracking-widest">Multimodal</span>
+              <span className="block text-2xl font-bold tracking-tighter text-white">Native</span>
+              <span className="monoscale text-[8px] uppercase tracking-[0.3em] text-white/30">LMM</span>
             </div>
             <div className="text-center">
-              <span className="block text-[20px] font-bold tracking-tight">E2E</span>
-              <span className="monoscale text-[9px] uppercase tracking-widest">Encrypted</span>
+              <span className="block text-2xl font-bold tracking-tighter text-white">E2E</span>
+              <span className="monoscale text-[8px] uppercase tracking-[0.3em] text-white/30">Crypto</span>
             </div>
           </div>
         </motion.div>
@@ -119,41 +132,46 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F0EE] flex flex-col font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-base relative flex flex-col font-sans selection:bg-cyan/30 selection:text-cyan text-white/80 overflow-hidden">
+      <AtmosphericBackground />
+      
       {/* Header */}
-      <header className="h-20 bg-white border-b border-black px-8 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-6">
+      <header className="h-20 bg-base/80 backdrop-blur-md border-b border-white/5 px-10 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-8">
           <button 
             onClick={() => setSelectedWorkspaceId(null)}
-            className="flex items-center gap-3 group"
+            className="flex items-center gap-4 group"
           >
-            <div className="bg-black p-2 rounded-none text-white group-hover:rotate-90 transition-transform duration-500">
-              <Activity className="w-6 h-6" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-cyan/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="lathed-border p-2 bg-white/5 rounded-xl text-cyan group-hover:rotate-90 transition-transform duration-700 relative">
+                <Activity className="w-6 h-6" />
+              </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-black tracking-tighter text-2xl uppercase leading-none">OmniMind</span>
-              <span className="monoscale text-[9px] font-bold tracking-[0.3em] text-black/30 uppercase leading-none mt-1">Enterprise Orchestration</span>
+              <span className="font-bold tracking-tighter text-2xl uppercase leading-none text-white">OmniMind</span>
+              <span className="monoscale text-[8px] font-medium tracking-[0.4em] text-white/20 uppercase leading-none mt-1">Enterprise Orchestration</span>
             </div>
           </button>
           {selectedWorkspaceId && (
-            <div className="flex items-center gap-3">
-              <span className="text-black/10 text-2xl font-light">/</span>
-              <span className="monoscale font-black text-[11px] text-black/40 uppercase tracking-widest">Workspace_Matrix</span>
+            <div className="flex items-center gap-4">
+              <span className="text-white/10 text-2xl font-light">/</span>
+              <span className="monoscale font-medium text-[10px] text-white/40 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">Workspace_Matrix</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex flex-col items-end mr-4 pr-6 border-r border-black/10">
-            <span className="text-[10px] font-black tracking-widest text-black/30 monoscale uppercase">Active_Session</span>
-            <span className="text-xs font-bold">{user.email}</span>
+        <div className="flex items-center gap-8">
+          <div className="hidden md:flex flex-col items-end mr-6 pr-8 border-r border-white/5">
+            <span className="text-[9px] font-medium tracking-[0.3em] text-white/20 monoscale uppercase">Active_Session</span>
+            <span className="text-xs font-bold text-white/60">{user.email}</span>
           </div>
           <button 
             onClick={signOut}
-            className="group flex items-center gap-2 p-3 border-2 border-black hover:bg-black hover:text-white transition-all rounded-none"
+            className="group flex items-center gap-3 p-3 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl"
           >
-            <span className="monoscale text-[10px] font-black uppercase tracking-widest group-hover:block hidden">Deauthorize</span>
-            <LogOut className="w-5 h-5" />
+            <span className="monoscale text-[9px] font-medium uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Term_Session</span>
+            <LogOut className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
           </button>
         </div>
       </header>

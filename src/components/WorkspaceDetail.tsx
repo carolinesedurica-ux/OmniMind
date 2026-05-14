@@ -22,6 +22,15 @@ import {
   Zap,
   X
 } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Cell 
+} from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import FileUpload from './FileUpload';
 import { askWorkspace, generateExecutiveBrief } from '../services/aiService';
@@ -53,6 +62,32 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
   // Brief Generation State
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Process files into chart data
+  const chartData = React.useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    const today = new Date();
+    
+    // Seed last 10 days
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      counts[label] = 0;
+    }
+
+    files.forEach(file => {
+      if (file.createdAt?.seconds) {
+        const date = new Date(file.createdAt.seconds * 1000);
+        const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (counts[label] !== undefined) {
+          counts[label]++;
+        }
+      }
+    });
+
+    return Object.entries(counts).map(([name, count]) => ({ name, count }));
+  }, [files]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -242,36 +277,39 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
   ];
 
   return (
-    <div className="h-full flex flex-col bg-[#F0F0EE] overflow-hidden selection:bg-black selection:text-white">
+    <div className="h-full flex flex-col overflow-hidden selection:bg-cyan/30 selection:text-cyan text-white/80">
       {/* Detail Header */}
-      <div className="px-10 py-8 border-b-2 border-black bg-white shrink-0">
-        <div className="flex items-start gap-8 mb-8">
+      <div className="px-10 py-10 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl shrink-0 relative overflow-hidden">
+        {/* Ambient Top Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyan/30 to-transparent" />
+        
+        <div className="flex items-start gap-10 mb-10 relative z-10">
           <button 
             onClick={onBack}
-            className="p-3 border-2 border-black hover:bg-black hover:text-white transition-all rounded-none mt-1"
+            className="p-4 bg-white/5 lathed-border hover:bg-white/10 hover:text-cyan transition-all rounded-xl mt-1 group"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           </button>
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="monoscale text-[10px] font-black bg-black text-white px-2 py-0.5 uppercase tracking-[0.2em]">
+            <div className="flex items-center gap-4 mb-3">
+              <span className="monoscale text-[9px] font-bold bg-cyan/10 text-cyan border border-cyan/20 px-3 py-1 rounded-md uppercase tracking-[0.3em]">
                 Cluster_{workspaceId.slice(0, 8)}
               </span>
-              <span className="monoscale text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">
+              <span className="monoscale text-[9px] font-medium text-white/30 uppercase tracking-[0.3em]">
                 {workspace?.vertical?.replace('-', '_') || 'GENERAL'}
               </span>
             </div>
-            <h2 className="text-5xl font-black tracking-tighter uppercase leading-none">{workspace?.name || 'INITIALIZING...'}</h2>
+            <h2 className="text-6xl font-bold tracking-tighter uppercase leading-none text-white">{workspace?.name || 'INITIALIZING...'}</h2>
           </div>
           
-          <div className="hidden lg:flex gap-16 pt-2">
-            <div className="flex flex-col items-end">
-              <span className="monoscale text-[9px] font-black text-black/30 uppercase tracking-widest">Active_Nodes</span>
-              <span className="text-xl font-black">{files.length}</span>
+          <div className="hidden lg:flex gap-16 pt-2 h-full items-center">
+            <div className="flex flex-col items-end border-r border-white/5 pr-16">
+              <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Active_Nodes</span>
+              <span className="text-3xl font-bold text-white tracking-tighter">{files.length}</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="monoscale text-[9px] font-black text-black/30 uppercase tracking-widest">Risk_Index</span>
-              <span className={`text-xl font-black ${risks.length > 5 ? 'text-red-500' : 'text-black'}`}>{risks.length}</span>
+              <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Risk_Index</span>
+              <span className={`text-3xl font-bold tracking-tighter ${risks.length > 5 ? 'text-red-400 glow-red' : 'text-white'}`}>{risks.length}</span>
             </div>
           </div>
         </div>
@@ -282,13 +320,13 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-3 py-3 transition-all monoscale text-[11px] font-black tracking-[0.1em] uppercase relative whitespace-nowrap
-                ${activeTab === tab.id ? 'text-black opacity-100' : 'text-black/30 hover:text-black/60'}`}
+              className={`flex items-center gap-3 py-4 transition-all monoscale text-[10px] font-bold tracking-[0.2em] uppercase relative whitespace-nowrap
+                ${activeTab === tab.id ? 'text-cyan opacity-100' : 'text-white/30 hover:text-white/60'}`}
             >
-              <tab.icon className="w-4 h-4" />
+              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-cyan animate-pulse' : 'text-white/20'}`} />
               {tab.label}
               {activeTab === tab.id && (
-                <motion.div layoutId="tab-underline" className="absolute -bottom-0.5 left-0 right-0 h-1 bg-black" />
+                <motion.div layoutId="tab-underline" className="absolute -bottom-px left-0 right-0 h-0.5 bg-cyan glow-cyan" />
               )}
             </button>
           ))}
@@ -296,73 +334,86 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto bg-[#F0F0EE]">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+        {/* Background Atmospheric Lighting */}
+        <div className="absolute top-1/4 -left-64 w-96 h-96 bg-cyan/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-64 w-96 h-96 bg-violet/5 blur-[120px] rounded-full pointer-events-none" />
+
         <AnimatePresence mode="wait">
           {activeTab === 'mining' && (
             <motion.div 
               key="mining" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10 max-w-[1600px] mx-auto"
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10 max-w-[1600px] mx-auto relative z-10"
             >
               <div className="lg:col-span-2 space-y-10">
-                <div className="bg-white border-2 border-black p-8">
+                <div className="glass-panel p-10 lathed-border relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 monoscale text-[8px]">BUFFER_READY</div>
                   <FileUpload workspaceId={workspaceId} />
                 </div>
                 
                 <section>
                   <div 
                     onClick={() => document.getElementById('file-ingestion-input')?.click()}
-                    className="flex items-center justify-between mb-6 border-b border-black/10 pb-4 cursor-pointer group/header hover:border-black transition-colors"
+                    className="flex items-center justify-between mb-8 border-b border-white/5 pb-6 cursor-pointer group/header transition-colors"
                   >
-                    <h4 className="monoscale text-[11px] font-black text-black/40 group-hover/header:text-black uppercase tracking-[0.2em] flex items-center gap-3 transition-colors">
-                      <Activity className="w-5 h-5" /> Data Ingestion Buffer
+                    <h4 className="monoscale text-[10px] font-bold text-white/30 group-hover/header:text-cyan uppercase tracking-[0.4em] flex items-center gap-4 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-cyan/50 animate-pulse" />
+                      Data Ingestion Buffer
                     </h4>
-                    <span className="monoscale text-[9px] font-black text-black/20 group-hover/header:text-black/40 uppercase tracking-widest transition-colors">
+                    <span className="monoscale text-[8px] font-medium text-white/20 group-hover/header:text-cyan/40 uppercase tracking-[0.3em] transition-colors bg-white/5 px-2 py-1 rounded">
                       [+] INITIATE_MANUAL_INGESTION
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {files.map(file => (
-                      <div 
+                      <motion.div 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
                         key={file.id} 
                         onClick={() => setSelectedFile(file)}
-                        className="bg-white border-2 border-black p-6 group hover:bg-black hover:text-white transition-all cursor-pointer relative overflow-hidden"
+                        className="glass-panel p-8 group hover:bg-white/5 transition-all cursor-pointer relative overflow-hidden lathed-border"
                       >
                         <div className="flex items-center justify-between relative z-10">
-                          <div className="flex items-center gap-6">
-                            <div className="p-3 bg-black/5 group-hover:bg-white/10 text-black group-hover:text-white transition-colors">
-                              <FileText className="w-6 h-6" />
+                          <div className="flex items-center gap-8">
+                            <div className="p-4 bg-white/5 rounded-xl text-white group-hover:text-cyan transition-colors lathed-border">
+                              <FileText className="w-7 h-7" />
                             </div>
                             <div>
-                              <p className="font-black text-lg uppercase tracking-tight mb-1">{file.title || file.originalFilename}</p>
-                              <div className="flex items-center gap-3 monoscale text-[9px] font-black uppercase tracking-widest opacity-40">
-                                <span>TYPE: {file.doc_type}</span>
-                                <span>•</span>
-                                <span className={file.status === 'processed' || file.status === 'completed' ? 'text-green-500' : 'text-yellow-500'}>STATUS: {file.status}</span>
-                              </div>
+                                <p className="font-bold text-xl uppercase tracking-tighter mb-2 text-white/90 group-hover:text-white transition-colors">{file.title || file.originalFilename}</p>
+                                <div className="flex items-center gap-4 monoscale text-[9px] font-medium uppercase tracking-widest text-white/20">
+                                  <span className="bg-white/5 px-2 py-0.5 rounded">TYPE: {file.doc_type}</span>
+                                  <span className="w-1 h-1 rounded-full bg-white/10" />
+                                  <span className={file.status === 'processed' || file.status === 'completed' ? 'text-cyan/70' : 'text-violet/70'}>
+                                    STATUS: {file.status.toUpperCase()}
+                                  </span>
+                                </div>
                             </div>
                           </div>
-                          <ChevronRight className="w-6 h-6 opacity-20 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
+                          <div className="p-2 rounded-lg bg-white/5 opacity-20 group-hover:opacity-100 group-hover:translate-x-2 transition-all">
+                            <ChevronRight className="w-5 h-5 text-cyan" />
+                          </div>
                         </div>
                         {file.summary && (
-                           <div className="mt-6 pt-6 border-t border-black/10 group-hover:border-white/10 relative z-10">
-                             <p className="text-xs italic serif leading-relaxed opacity-60">
+                           <div className="mt-8 pt-8 border-t border-white/5 relative z-10">
+                             <p className="text-xs font-medium text-white/30 leading-relaxed tracking-tight line-clamp-2 italic">
                                {file.summary}
                              </p>
                            </div>
                         )}
-                        {/* Interactive hover background */}
-                        <div className="absolute inset-0 bg-black translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                      </div>
+                        {/* Interactive scanline effect on hover */}
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute inset-y-0 left-0 w-1 bg-cyan scale-y-0 group-hover:scale-y-100 transition-transform origin-top opacity-50" />
+                      </motion.div>
                     ))}
                     {files.length === 0 && (
                       <button 
                         onClick={() => document.getElementById('file-ingestion-input')?.click()}
-                        className="py-24 text-center bg-black/5 border-2 border-black border-dashed hover:bg-black/10 transition-all cursor-pointer group w-full"
+                        className="py-24 text-center glass-panel border-dashed hover:bg-white/5 transition-all cursor-pointer group w-full lathed-border"
                       >
-                        <p className="monoscale text-[11px] font-black text-black/30 group-hover:text-black uppercase tracking-[0.3em]">Standby. Awaiting Multimodal Input.</p>
-                        <p className="monoscale text-[9px] font-black text-black/20 group-hover:text-black/40 uppercase tracking-[0.2em] mt-2">Click to manually initiate ingestion</p>
+                        <p className="monoscale text-[12px] font-medium text-white/10 group-hover:text-white/40 uppercase tracking-[0.5em] transition-colors">Standby. Awaiting Multimodal Input.</p>
+                        <p className="monoscale text-[9px] font-medium text-white/5 group-hover:text-white/20 uppercase tracking-[0.3em] mt-4 transition-colors">Click to manually initiate ingestion</p>
                       </button>
                     )}
                   </div>
@@ -370,50 +421,120 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
               </div>
 
               <div className="space-y-10">
-                <section className="bg-white border-2 border-black p-8">
-                  <h4 className="monoscale text-[11px] font-black text-black uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500" /> Operational Risks
+                <section className="glass-panel p-8 lathed-border">
+                  <h4 className="monoscale text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] mb-10 flex items-center gap-4">
+                    <AlertTriangle className="w-5 h-5 text-violet/50" /> Operational Risks
                   </h4>
                   <div className="space-y-4">
                     {risks.map(risk => (
-                      <div key={risk.id} className="p-6 bg-[#F8F8F8] border border-black/10 group hover:border-black transition-all">
+                      <div key={risk.id} className="p-6 bg-white/5 border border-white/5 rounded-xl group hover:border-violet/30 transition-all relative overflow-hidden">
+                        <div className="absolute top-0 right-0 h-full w-px bg-gradient-to-b from-transparent via-violet/20 to-transparent" />
                         <div className="flex items-center justify-between mb-4">
-                           <span className="monoscale text-[9px] font-black text-white bg-black px-2 py-0.5 uppercase tracking-widest">
+                           <span className={`monoscale text-[8px] font-bold px-3 py-1 rounded uppercase tracking-[0.2em] ${
+                             risk.severity === 'high' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                             risk.severity === 'medium' ? 'bg-violet/10 text-violet-400 border border-violet/50' : 'bg-green-500/10 text-green-400'
+                           }`}>
                              LVL_{risk.severity.toUpperCase()}
                            </span>
-                           <span className="text-[9px] monoscale font-black text-black/20 uppercase tracking-widest">{risk.evidence}</span>
+                           <span className="text-[8px] monoscale font-medium text-white/10 uppercase tracking-widest">{risk.evidence}</span>
                         </div>
-                        <p className="font-black text-sm uppercase mb-2 leading-tight">{risk.title}</p>
-                        <p className="text-[11px] text-black/50 leading-relaxed italic serif">{risk.rationale}</p>
+                        <p className="font-bold text-sm uppercase text-white/80 mb-3 leading-tight tracking-tighter">{risk.title}</p>
+                        <p className="text-[11px] text-white/30 leading-relaxed font-medium tracking-tight italic">{risk.rationale}</p>
                       </div>
                     ))}
                     {risks.length === 0 && (
-                       <div className="p-8 text-center monoscale text-black/20 text-[10px] font-black uppercase tracking-widest border border-dashed border-black/10 italic">
+                       <div className="p-12 text-center monoscale text-white/10 text-[9px] font-medium uppercase tracking-[0.4em] border border-dashed border-white/5 rounded-2xl italic">
                          Zero Threats Detected.
                        </div>
                     )}
                   </div>
                 </section>
 
-                <div className="p-8 bg-black text-white border-2 border-black">
-                  <h5 className="monoscale text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Core_Operational_Metrics</h5>
-                  <div className="space-y-6">
+                <section className="glass-panel p-10 lathed-border relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-5 monoscale text-[8px]">INGESTION_VOLUME_METRICS</div>
+                   <h5 className="monoscale text-[9px] font-bold text-cyan/30 uppercase tracking-[0.4em] mb-10">Ingestion_Timeline</h5>
+                   <div className="h-64 w-full">
+                     <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
+                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 700 }}
+                            dy={10}
+                          />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 700 }}
+                            allowDecimals={false}
+                          />
+                          <Tooltip 
+                            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                            contentStyle={{ 
+                              backgroundColor: '#050506', 
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              borderRadius: '8px',
+                              fontSize: '10px',
+                              textTransform: 'uppercase',
+                              fontWeight: 700,
+                              fontFamily: 'JetBrains Mono, monospace'
+                            }}
+                            itemStyle={{ color: '#22d3ee' }}
+                          />
+                          <Bar 
+                            dataKey="count" 
+                            radius={[4, 4, 0, 0]}
+                            fill="url(#barGradient)"
+                            animationDuration={1500}
+                          >
+                            {chartData.map((_, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                className="hover:opacity-100 transition-opacity" 
+                                style={{ transition: 'opacity 0.3s' }}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                     </ResponsiveContainer>
+                   </div>
+                </section>
+
+                <div className="glass-panel p-10 lathed-border relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-5 monoscale text-[8px]">CORE_STATUS_ACTIVE</div>
+                   <h5 className="monoscale text-[9px] font-bold text-cyan/30 uppercase tracking-[0.4em] mb-8">System_Diagnostics</h5>
+                   <div className="space-y-8">
                     <div>
-                      <div className="flex justify-between monoscale text-[10px] font-black uppercase mb-1">
-                        <span>CPU_Load</span>
-                        <span>42%</span>
+                      <div className="flex justify-between monoscale text-[9px] font-medium uppercase mb-3 tracking-widest">
+                        <span className="text-white/40">Neural_Load</span>
+                        <span className="text-cyan">42%</span>
                       </div>
-                      <div className="h-1 bg-white/10 overflow-hidden">
-                        <div className="h-full bg-white w-[42%]" />
+                      <div className="h-[2px] bg-white/5 overflow-hidden rounded-full">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: '42%' }}
+                          className="h-full bg-cyan shadow-[0_0_10px_rgba(0,242,255,0.5)]" 
+                        />
                       </div>
                     </div>
                     <div>
-                      <div className="flex justify-between monoscale text-[10px] font-black uppercase mb-1">
-                        <span>Neural_Sync</span>
-                        <span>98.2%</span>
+                      <div className="flex justify-between monoscale text-[9px] font-medium uppercase mb-3 tracking-widest">
+                        <span className="text-white/40">Synthesis_Rate</span>
+                        <span className="text-violet">98.2%</span>
                       </div>
-                      <div className="h-1 bg-white/10 overflow-hidden">
-                        <div className="h-full bg-white w-[98.2%]" />
+                      <div className="h-[2px] bg-white/5 overflow-hidden rounded-full">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: '98.2%' }}
+                          className="h-full bg-violet shadow-[0_0_10px_rgba(139,92,246,0.5)]" 
+                        />
                       </div>
                     </div>
                   </div>
@@ -425,82 +546,115 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           {activeTab === 'neural' && (
             <motion.div 
               key="neural" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0 }}
-              className="h-full flex flex-col max-w-5xl mx-auto w-full relative"
+              className="h-full flex flex-col max-w-6xl mx-auto w-full relative z-10"
             >
-              <div className="flex-1 overflow-y-auto pt-10 px-10 pb-4 no-scrollbar">
+              <div className="flex-1 overflow-y-auto px-10 py-12 custom-scrollbar space-y-12">
                 {chatHistory.map((chat, i) => (
-                  <div key={i} className="space-y-6">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={i} 
+                    className="space-y-10"
+                  >
                     <div className="flex justify-end">
-                      <div className="bg-white border-2 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-xl">
-                        <p className="text-sm font-black uppercase tracking-tight">{chat.question}</p>
+                      <div className="glass-panel p-6 lathed-border max-w-xl group hover:border-cyan/30 transition-all bg-cyan/[0.02]">
+                        <p className="text-sm font-bold uppercase tracking-tight text-white/90">{chat.question}</p>
                       </div>
                     </div>
                     <div className="flex justify-start">
-                      <div className="bg-black text-white p-8 border-2 border-black shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)] max-w-3xl">
-                        <div className="flex items-center gap-4 mb-6 border-b border-white/10 pb-4">
-                           <Brain className="w-6 h-6 text-white" />
-                           <div className="flex flex-col">
-                             <span className="monoscale font-black text-[10px] uppercase tracking-widest text-white/40">Knowledge Synthesis Output</span>
-                             <span className="monoscale text-[9px] font-black text-white/60">Confidence Score: {chat.confidence}</span>
+                      <div className="glass-panel p-10 lathed-border max-w-4xl relative overflow-hidden group">
+                        {/* Interactive scanline */}
+                        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet/50 to-transparent" />
+                        <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan/50 to-transparent opacity-20" />
+                        
+                        <div className="flex items-center gap-6 mb-10 border-b border-white/5 pb-8">
+                           <div className="p-3 bg-violet/10 rounded-xl lathed-border">
+                             <Brain className="w-6 h-6 text-violet animate-pulse" />
+                           </div>
+                           <div className="flex flex-col gap-1">
+                             <span className="monoscale font-bold text-[10px] uppercase tracking-[0.4em] text-white/30">Synthesis_Kernel_Output</span>
+                             <div className="flex items-center gap-4">
+                               <span className="monoscale text-[9px] font-bold text-violet/60 uppercase tracking-widest border border-violet/20 px-2 py-0.5 rounded">Confidence: {chat.confidence}</span>
+                               <span className="monoscale text-[8px] font-medium text-white/10 uppercase tracking-widest">ENCRYPTED_STREAM_SECURE</span>
+                             </div>
                            </div>
                         </div>
-                        <p className="text-base leading-relaxed mb-8 italic serif">{chat.answer}</p>
+                        
+                        <p className="text-lg leading-relaxed mb-12 text-white/80 tracking-tight font-medium italic select-text selection:bg-violet/30 selection:text-white">
+                          {chat.answer}
+                        </p>
                         
                         {chat.citations && chat.citations.length > 0 && (
-                          <div className="space-y-4 pt-6 border-t border-white/10">
-                             <p className="monoscale text-[9px] font-black text-white/30 uppercase tracking-[0.3em]">Evidence Log</p>
-                             <div className="grid grid-cols-1 gap-3">
+                          <div className="space-y-6 pt-10 border-t border-white/5">
+                             <div className="flex items-center justify-between">
+                               <p className="monoscale text-[9px] font-bold text-white/20 uppercase tracking-[0.5em]">Extraction_Evidence_Nodes</p>
+                               <span className="text-[8px] monoscale font-medium text-white/10 uppercase tracking-widest">{chat.citations.length} REFERENCES_SYNCED</span>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                {chat.citations.map((c: any, ci: number) => (
-                                 <div key={ci} className="bg-white/5 p-5 border border-white/5 hover:border-white/20 transition-all">
-                                   <div className="flex items-center justify-between mb-3">
-                                      <span className="monoscale text-[10px] font-black text-white/40 uppercase">Source: {c.location}</span>
-                                      <Quote className="w-4 h-4 text-white/10" />
+                                 <motion.div 
+                                   whileHover={{ scale: 1.02 }}
+                                   key={ci} 
+                                   className="glass-panel p-6 border-white/5 hover:bg-white/5 transition-all lathed-border"
+                                 >
+                                   <div className="flex items-center justify-between mb-4">
+                                      <span className="monoscale text-[9px] font-bold text-cyan/40 uppercase tracking-widest bg-cyan/5 px-2 py-1 rounded">Source: {c.location}</span>
+                                      <Quote className="w-3 h-3 text-white/10" />
                                    </div>
-                                   <p className="text-sm italic serif text-white/80 mb-4 leading-relaxed">"{c.quote}"</p>
-                                   <div className="pl-4 border-l-2 border-white/10">
-                                      <p className="text-[10px] font-black uppercase text-white/40 tracking-wider">Analysis: {c.why}</p>
+                                   <p className="text-[13px] italic text-white/60 mb-6 leading-relaxed border-l border-white/5 pl-4">"{c.quote}"</p>
+                                   <div className="pt-4 border-t border-white/5">
+                                      <p className="text-[9px] font-bold uppercase text-white/20 tracking-[0.2em] leading-relaxed">
+                                        <span className="text-violet/60 mr-2">LOG:</span> {c.why}
+                                      </p>
                                    </div>
-                                 </div>
+                                 </motion.div>
                                ))}
                              </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
                 <div ref={chatEndRef} />
                 {chatHistory.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center opacity-10 py-32">
-                    <Brain className="w-32 h-32 mb-8" />
-                    <p className="monoscale text-xl font-black uppercase tracking-[0.5em]">Standby. Awaiting Pulse.</p>
+                  <div className="h-full flex flex-col items-center justify-center py-40 group">
+                    <div className="relative mb-10">
+                      <div className="absolute inset-0 bg-violet/20 blur-[80px] rounded-full group-hover:bg-violet/30 transition-all duration-1000" />
+                      <Brain className="w-24 h-24 text-white/10 group-hover:text-white/20 transition-all relative z-10 animate-pulse duration-[4000ms]" />
+                    </div>
+                    <p className="monoscale text-xl font-bold text-white/10 uppercase tracking-[0.6em] group-hover:text-white/20 transition-all">Standby. Awaiting Query Input.</p>
+                    <p className="monoscale text-[9px] font-medium text-white/5 uppercase tracking-[0.3em] mt-6">Neural Synthesis Core Active v4.2.0</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-10 pt-0 shrink-0">
-                <form onSubmit={handleAsk} className="relative group">
-                  <div className="absolute -inset-2 bg-black opacity-0 group-focus-within:opacity-10 blur-xl transition-all" />
+              <div className="px-10 pb-10 pt-4 shrink-0 relative">
+                <form onSubmit={handleAsk} className="relative group max-w-4xl mx-auto">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan/20 via-violet/20 to-cyan/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-1000" />
                   <input 
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
-                    placeholder="Ask the Neural Core..."
-                    className="w-full bg-white border-2 border-black p-6 pr-20 rounded-none shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all placeholder:text-black/30 monoscale font-black uppercase text-sm relative z-10"
+                    placeholder="INITIATE_KNOWLEDGE_EXTRACTION..."
+                    className="w-full glass-panel lathed-border p-8 pr-24 rounded-2xl focus:shadow-[0_0_30px_rgba(34,211,238,0.1)] transition-all placeholder:text-white/10 monoscale font-bold uppercase text-xs relative z-10 outline-none hover:bg-white/[0.04]"
                     disabled={isAsking}
                   />
                   <button 
                     type="submit"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black text-white p-3 rounded-none hover:scale-110 active:scale-95 transition-all disabled:opacity-30 z-20"
+                    className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/5 text-white/40 hover:text-cyan hover:bg-white/10 rounded-xl transition-all disabled:opacity-10 z-20 lathed-border group"
                     disabled={isAsking || !question.trim()}
                   >
-                    <Send className="w-6 h-6" />
+                    <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </button>
                 </form>
                 {isAsking && (
-                   <p className="text-center monoscale text-[10px] mt-8 font-black tracking-[0.3em] uppercase animate-pulse">Aggregating Cross-Domain Insights...</p>
+                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                     <div className="w-1 h-1 bg-violet rounded-full animate-ping" />
+                     <p className="monoscale text-[8px] font-bold text-violet/60 tracking-[0.4em] uppercase">Aggregating Cross-Domain Insights...</p>
+                   </div>
                 )}
               </div>
             </motion.div>
@@ -509,194 +663,221 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           {activeTab === 'feed' && (
             <motion.div 
               key="feed" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="p-10 space-y-8 max-w-5xl mx-auto"
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="p-10 max-w-[1400px] mx-auto relative z-10"
             >
-              <div className="mb-12 border-b-2 border-black pb-8">
-                <h3 className="text-4xl font-black tracking-tighter uppercase mb-2">Neural Stream</h3>
-                <p className="monoscale text-[10px] font-black text-black/40 uppercase tracking-[0.3em]">Real-time Segment Reconstruction</p>
-              </div>
-
-              {segments.map((seg, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex gap-10 group"
-                >
-                  <div className="w-32 shrink-0 flex flex-col items-end pt-2">
-                    <span className="monoscale text-[13px] font-black text-black tracking-tighter group-hover:scale-110 transition-transform">{seg.start}</span>
-                    <span className="monoscale text-[9px] text-black/30 uppercase font-black tracking-widest mt-1">{seg.speaker || 'SYSTEM'}</span>
-                  </div>
-                  <div className="flex-1 pb-12 border-l-2 border-black/10 pl-10 relative">
-                    <div className="absolute top-2.5 -left-[6px] w-[10px] h-[10px] bg-black/10 group-hover:bg-black transition-colors" />
-                    <div className="bg-white p-8 border-2 border-transparent group-hover:border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0)] group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-                       {seg.topic && (
-                         <div className="flex items-center gap-2 mb-6">
-                           <span className="monoscale text-[10px] font-black text-white bg-black px-2 py-0.5 uppercase tracking-widest font-black">TOPIC_{seg.topic.replace(/\s+/g, '_').toUpperCase()}</span>
-                         </div>
-                       )}
-                       <p className="text-lg leading-relaxed text-black italic serif">{seg.text}</p>
+              <div className="flex items-center justify-between mb-12 border-b border-white/5 pb-8">
+                 <h4 className="monoscale text-[11px] font-bold text-white/40 uppercase tracking-[0.5em] flex items-center gap-4">
+                   <Clock className="w-5 h-5 text-cyan/40" /> Neural_Segment_Extraction
+                 </h4>
+                 <div className="flex items-center gap-4">
+                    <div className="bg-white/5 px-4 py-2 rounded-xl lathed-border">
+                      <span className="monoscale text-[9px] font-bold text-cyan/60 uppercase tracking-widest">NodesSynced_{segments.length}</span>
                     </div>
+                 </div>
+              </div>
+              <div className="space-y-6">
+                {segments.map((seg, i) => (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    key={i}
+                    className="glass-panel p-10 group hover:bg-white/5 transition-all lathed-border relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 w-1 h-full bg-cyan/20 scale-y-0 group-hover:scale-y-100 transition-transform origin-top" />
+                    <div className="flex gap-12">
+                      <div className="w-40 shrink-0 flex flex-col items-end pt-1 border-r border-white/5 pr-10">
+                        <span className="monoscale text-[14px] font-bold text-cyan tracking-widest tabular-nums">{seg.start}</span>
+                        <span className="monoscale text-[9px] text-white/20 uppercase font-medium tracking-widest mt-2">{seg.speaker || 'SYSTEM_CORE'}</span>
+                        {seg.topic && (
+                           <span className="monoscale text-[8px] font-bold text-violet/40 uppercase tracking-widest mt-4 group-hover:text-violet/60 transition-colors">[{seg.topic.replace(/\s+/g, '_')}]</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-lg leading-relaxed text-white/70 italic tracking-tight group-hover:text-white transition-colors">{seg.text}</p>
+                        {seg.entities && seg.entities.length > 0 && (
+                          <div className="mt-8 flex flex-wrap gap-3">
+                            {seg.entities.map((ent: string, ei: number) => (
+                              <span key={ei} className="px-3 py-1 bg-white/5 text-white/40 border border-white/5 text-[9px] monoscale font-medium uppercase tracking-widest rounded hover:bg-cyan/10 hover:text-cyan hover:border-cyan/20 transition-all">
+                                {ent}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                {segments.length === 0 && (
+                  <div className="py-40 text-center glass-panel border-dashed lathed-border">
+                    <Clock className="w-16 h-16 text-white/5 mx-auto mb-8 animate-pulse" />
+                    <p className="monoscale text-[11px] font-medium text-white/10 uppercase tracking-[0.5em]">Neural Stream Buffering...</p>
                   </div>
-                </motion.div>
-              ))}
-              {segments.length === 0 && (
-                <div className="text-center py-48 opacity-20">
-                  <Clock className="w-24 h-24 mx-auto mb-8" />
-                  <p className="monoscale text-xl font-black uppercase tracking-[0.5em]">Stream Buffering...</p>
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
           )}
 
           {activeTab === 'matrix' && (
              <motion.div 
               key="matrix" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="p-10 max-w-[1600px] mx-auto"
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="p-10 max-w-[1600px] mx-auto relative z-10"
             >
-              <div className="mb-12 border-b-2 border-black pb-8">
-                <h3 className="text-4xl font-black tracking-tighter uppercase mb-2">Entity Matrix</h3>
-                <p className="monoscale text-[10px] font-black text-black/40 uppercase tracking-[0.3em]">Cross-Reference Object Index</p>
+              <div className="flex items-center justify-between mb-12 border-b border-white/5 pb-8">
+                 <h4 className="monoscale text-[11px] font-bold text-white/40 uppercase tracking-[0.5em] flex items-center gap-4">
+                   <Layers className="w-5 h-5 text-violet/40" /> Relational_Knowledge_Graph
+                 </h4>
+                 <div className="flex items-center gap-4">
+                    <span className="monoscale text-[9px] font-bold text-violet/60 uppercase tracking-widest bg-violet/5 px-4 py-2 rounded-xl lathed-border">ObjectsSynced_{entities.length}</span>
+                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 border-l border-t border-black">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {entities.map((ent, i) => (
-                  <div key={i} className="bg-white border-r border-b border-black p-8 group hover:bg-black hover:text-white transition-all duration-300">
-                     <div className="flex items-center justify-between mb-8">
-                        <span className="monoscale text-[10px] font-black bg-black text-white group-hover:bg-white group-hover:text-black px-2 py-0.5 uppercase tracking-widest">{ent.type}</span>
-                        <Layers className="w-5 h-5 opacity-20 group-hover:opacity-100" />
+                  <motion.div 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    key={i} 
+                    className="glass-panel p-10 group hover:bg-white/[0.04] transition-all duration-300 lathed-border relative overflow-hidden"
+                  >
+                     <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity">
+                        <Layers className="w-12 h-12 text-white" />
                      </div>
-                     <h5 className="text-2xl font-black tracking-tighter uppercase mb-4 leading-tight group-hover:translate-x-2 transition-transform">{ent.name}</h5>
-                     <p className="text-xs text-black/40 group-hover:text-white/50 italic serif mb-8 line-clamp-4 leading-relaxed">{ent.context}</p>
+                     <div className="flex items-center justify-between mb-10">
+                        <span className="monoscale text-[9px] font-bold bg-white/5 text-white/30 group-hover:text-violet group-hover:bg-violet/10 border border-white/5 px-3 py-1 rounded-md uppercase tracking-widest transition-all">{ent.type}</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_10px_rgba(34,211,238,0.5)] animate-pulse" />
+                     </div>
+                     <h5 className="text-2xl font-bold tracking-tighter text-white/80 uppercase mb-4 leading-tight group-hover:text-white transition-colors">{ent.name}</h5>
+                     <p className="text-[13px] text-white/40 group-hover:text-white/60 italic leading-relaxed mb-10 tracking-tight line-clamp-4">{ent.context || 'Autonomous entity node synchronized from dataset.'}</p>
                      
-                     <div className="flex flex-wrap gap-2">
-                       {ent.mentions?.map((m: string, mi: number) => (
-                         <span key={mi} className="text-[9px] monoscale font-black border border-current opacity-30 px-2 py-0.5 uppercase tracking-widest hover:opacity-100 transition-opacity">
+                     <div className="flex flex-wrap gap-2 pt-8 border-t border-white/5">
+                       {(ent.mentions || []).map((m: string, mi: number) => (
+                         <span key={mi} className="text-[8px] monoscale font-bold border border-white/10 text-white/20 px-2 py-0.5 uppercase tracking-widest hover:text-cyan hover:border-cyan/30 transition-all rounded">
                             {m}
                          </span>
                        ))}
+                       {(ent.mentions || []).length === 0 && (
+                          <span className="text-[8px] monoscale font-bold text-white/10 uppercase tracking-widest italic">No connections cached</span>
+                       )}
                      </div>
-                  </div>
+                  </motion.div>
                 ))}
+                {entities.length === 0 && (
+                   <div className="lg:col-span-4 py-40 text-center glass-panel border-dashed bg-white/[0.01] lathed-border w-full">
+                      <Layers className="w-16 h-16 text-white/5 mx-auto mb-8 animate-pulse" />
+                      <p className="monoscale text-[11px] font-medium text-white/10 uppercase tracking-[0.6em]">Awaiting Entity Extraction.</p>
+                   </div>
+                )}
               </div>
-              {entities.length === 0 && (
-                <div className="text-center py-48 opacity-20">
-                  <Layers className="w-24 h-24 mx-auto mb-8" />
-                  <p className="monoscale text-xl font-black uppercase tracking-[0.5em]">Matrix Offline</p>
-                </div>
-              )}
             </motion.div>
           )}
 
           {activeTab === 'briefs' && (
             <motion.div 
               key="briefs" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="p-10 max-w-6xl mx-auto space-y-16"
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="p-10 max-w-6xl mx-auto space-y-24 relative z-10"
             >
-              <div className="flex items-end justify-between border-b-2 border-black pb-8">
+              <div className="flex items-end justify-between border-b border-white/5 pb-12">
                 <div>
-                  <h3 className="text-5xl font-black tracking-tighter uppercase mb-2">Intelligence Briefs</h3>
-                  <p className="monoscale text-[10px] font-black text-black/40 uppercase tracking-[0.4em]">Strategic Synthesis Repository</p>
+                  <h3 className="text-6xl font-bold tracking-tighter uppercase mb-2 text-white">Intelligence Briefs</h3>
+                  <p className="monoscale text-[10px] font-bold text-white/20 uppercase tracking-[0.5em]">Strategic Synthesis Repository</p>
                 </div>
                 <button 
                   onClick={handleGenerateBrief}
                   disabled={isGeneratingBrief}
-                  className="bg-black text-white px-10 py-5 rounded-none font-black text-[11px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all flex items-center gap-4 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]"
+                  className="bg-cyan text-black px-10 py-5 rounded-xl font-bold text-[11px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all flex items-center gap-4 border border-cyan/50 shadow-[0_0_20px_rgba(34,211,238,0.2)] disabled:opacity-20"
                 >
                   {isGeneratingBrief ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />}
+                    <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  ) : <Zap className="w-5 h-5 fill-current" />}
                   Generate Briefing
                 </button>
               </div>
 
-              <div className="space-y-20">
+              <div className="space-y-32">
                 {briefs.map((brief, i) => (
                   <motion.div 
                     key={brief.id}
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="bg-white border-2 border-black shadow-[24px_24px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+                    className="glass-panel lathed-border relative group overflow-visible"
                   >
-                    <div className="bg-black text-white p-10 relative overflow-hidden">
-                       <div className="absolute -right-8 -top-8 border-2 border-white/5 w-64 h-64 rounded-full" />
-                       <div className="flex items-center justify-between mb-6 relative">
-                         <span className="monoscale text-[11px] font-black text-white/40 uppercase tracking-[0.4em]">Secret // Node_Ref_{brief.id.slice(0, 6)}</span>
-                         <span className="monoscale text-[11px] font-black text-white/40">{new Date(brief.createdAt?.seconds * 1000).toLocaleString()}</span>
+                    <div className="bg-white/[0.03] p-12 relative overflow-hidden rounded-t-[inherit]">
+                       <div className="absolute -right-20 -top-20 w-80 h-80 bg-violet/5 blur-[100px] rounded-full pointer-events-none" />
+                       <div className="flex items-center justify-between mb-10 relative">
+                         <span className="monoscale text-[10px] font-bold text-white/20 uppercase tracking-[0.5em] bg-white/5 px-3 py-1 rounded">Secret // Auth_Node_{brief.id.slice(0, 6)}</span>
+                         <span className="monoscale text-[10px] font-bold text-white/20 uppercase tabular-nums tracking-widest">{new Date(brief.createdAt?.seconds * 1000).toLocaleString()}</span>
                        </div>
-                       <h4 className="text-6xl font-black tracking-tighter uppercase mb-6 relative">{brief.title}</h4>
-                       <div className="flex items-center gap-4 text-white/60 relative">
-                         <Quote className="w-8 h-8 opacity-20" />
-                         <p className="text-xl font-medium italic serif leading-relaxed lg:max-w-3xl pr-12">"{brief.tldr}"</p>
+                       <h4 className="text-7xl font-bold tracking-tighter uppercase mb-10 relative text-white group-hover:text-cyan transition-colors">{brief.title}</h4>
+                       <div className="flex items-start gap-10 text-white/60 relative">
+                         <Quote className="w-10 h-10 text-cyan/20 shrink-0" />
+                         <p className="text-2xl font-medium italic tracking-tight leading-relaxed lg:max-w-4xl pr-12 text-white/80">"{brief.tldr}"</p>
                        </div>
                     </div>
                     
-                    <div className="p-12 grid grid-cols-1 md:grid-cols-2 gap-20">
-                      <div className="space-y-12">
+                    <div className="p-12 space-y-20">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
                         <section>
-                          <h5 className="monoscale text-[11px] font-black text-black/30 mb-6 uppercase tracking-[0.3em] border-b border-black/10 pb-2">Core_Findings</h5>
-                          <ul className="space-y-6">
-                            {brief.key_findings?.map((f: string, j: number) => (
-                              <li key={j} className="flex gap-5 text-base leading-relaxed italic serif">
-                                <span className="monoscale text-[10px] font-black text-black/20 pt-1.5">[{String(j+1).padStart(2, '0')}]</span>
-                                {f}
-                              </li>
-                            ))}
-                          </ul>
+                           <h5 className="monoscale text-[11px] font-bold text-cyan/40 uppercase tracking-[0.6em] mb-10 border-b border-white/5 pb-4">Key Findings</h5>
+                           <ul className="space-y-8">
+                             {brief.key_findings?.map((f: string, j: number) => (
+                               <li key={j} className="flex gap-6 group/item">
+                                 <span className="monoscale text-[10px] font-bold text-violet/40 pt-1">0{j+1}</span>
+                                 <p className="text-[15px] text-white/60 leading-relaxed font-medium tracking-tight group-hover/item:text-white/90 transition-colors uppercase italic">{f}</p>
+                               </li>
+                             ))}
+                           </ul>
                         </section>
-
                         <section>
-                          <h5 className="monoscale text-[11px] font-black text-black/30 mb-6 uppercase tracking-[0.3em] border-b border-black/10 pb-2">Strategic_Actions</h5>
-                          <div className="space-y-4">
-                            {brief.recommended_actions?.map((ra: any, j: number) => (
-                              <div key={j} className="p-6 border-2 border-black bg-black/5 hover:bg-black hover:text-white transition-colors group">
-                                <div className="flex items-center justify-between mb-4">
-                                  <span className="monoscale text-[9px] font-black uppercase tracking-widest border border-current px-2 py-0.5">{ra.priority}_PRIORITY</span>
-                                  <span className="monoscale text-[10px] font-black tracking-widest opacity-40 group-hover:opacity-100">{ra.owner}</span>
-                                </div>
-                                <p className="text-lg font-black uppercase tracking-tight leading-tight">{ra.action}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      </div>
-
-                      <div className="space-y-12">
-                        <section>
-                          <h5 className="monoscale text-[11px] font-black text-black/30 mb-6 uppercase tracking-[0.3em] border-b border-black/10 pb-2">Risk_Landscape_Audit</h5>
-                          <div className="grid grid-cols-1 gap-2">
-                            {brief.risk_summary?.map((rs: any, j: number) => (
-                              <div key={j} className="flex justify-between items-center p-4 border border-black/10 hover:border-black transition-all">
-                                <span className="text-sm font-black uppercase tracking-tight">{rs.risk}</span>
-                                <span className={`monoscale text-[9px] font-black px-2 py-1 uppercase tracking-widest ${
-                                  rs.severity === 'high' ? 'bg-red-500 text-white' : 
-                                  rs.severity === 'medium' ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white'
-                                }`}>
-                                  {rs.severity.toUpperCase()}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-
-                        <section>
-                          <h5 className="monoscale text-[11px] font-black text-black/30 mb-6 uppercase tracking-[0.3em] border-b border-black/10 pb-2">Intelligence_Draft</h5>
-                          <div className="p-8 bg-[#F8F8F8] border border-black/5 relative">
-                            <Quote className="absolute top-4 right-4 w-12 h-12 text-black/5" />
-                            <p className="text-xs font-mono text-black/60 leading-relaxed whitespace-pre-wrap italic relative">
-                              {brief.next_steps_email}
-                            </p>
-                          </div>
+                           <h5 className="monoscale text-[11px] font-bold text-red-100/40 uppercase tracking-[0.6em] mb-10 border-b border-white/5 pb-4">Risk Audit</h5>
+                           <div className="space-y-4">
+                             {brief.risk_summary?.map((rs: any, rsi: number) => (
+                               <div key={rsi} className="flex items-center justify-between p-5 border border-white/5 bg-white/[0.01] rounded-xl group/risk hover:border-red-400/30 transition-all">
+                                 <span className="text-sm font-bold text-white/60 group-hover/risk:text-white transition-colors uppercase italic">{rs.risk}</span>
+                                 <span className={`monoscale text-[8px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
+                                     rs.severity === 'high' ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(248,113,113,0.1)]' : 
+                                     rs.severity === 'medium' ? 'bg-violet/10 text-violet-400' : 'bg-green-500/10 text-green-400'
+                                   }`}>
+                                   {rs.severity.toUpperCase()}
+                                 </span>
+                               </div>
+                             ))}
+                           </div>
                         </section>
                       </div>
+
+                      <section>
+                         <h5 className="monoscale text-[11px] font-bold text-cyan/40 uppercase tracking-[0.6em] mb-10 border-b border-white/5 pb-4">Recommended Actions</h5>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                           {brief.recommended_actions?.map((ra: any, rai: number) => (
+                             <div key={rai} className="glass-panel p-8 lathed-border relative group/action overflow-hidden">
+                               <div className="absolute top-0 right-0 p-4 opacity-5 monoscale text-[8px]">{ra.owner}</div>
+                               <div className="flex items-center justify-between mb-8">
+                                  <span className={`monoscale text-[8px] font-bold px-3 py-1 rounded uppercase tracking-widest ${
+                                    ra.priority === 'high' ? 'bg-red-500/10 text-red-400' : 'bg-violet/10 text-violet-400'
+                                  }`}>
+                                    {ra.priority.toUpperCase()}_PRIORITY
+                                  </span>
+                               </div>
+                               <p className="text-lg font-bold text-white/80 group-hover/action:text-cyan transition-colors uppercase tracking-tight leading-snug">{ra.action}</p>
+                             </div>
+                           ))}
+                         </div>
+                      </section>
+
+                      <section>
+                         <h5 className="monoscale text-[11px] font-bold text-white/10 uppercase tracking-[0.6em] mb-10 border-b border-white/5 pb-4">Intelligence Draft</h5>
+                         <div className="glass-panel p-10 bg-white/[0.01] relative overflow-hidden group/draft">
+                            <Quote className="absolute top-6 right-6 w-16 h-16 text-white/[0.02] group-hover:text-white/[0.05] transition-all" />
+                            <p className="text-[13px] leading-relaxed text-white/30 font-mono italic whitespace-pre-wrap selection:bg-cyan/30 selection:text-white">{brief.next_steps_email}</p>
+                         </div>
+                      </section>
                     </div>
                   </motion.div>
                 ))}
@@ -707,78 +888,82 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           {activeTab === 'collaborators' && (
             <motion.div 
               key="collaborators" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="p-10 max-w-5xl mx-auto"
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="p-10 max-w-4xl mx-auto space-y-16 relative z-10"
             >
-              <div className="bg-white border-2 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
-                <div className="p-12 border-b border-black/10">
-                  <h3 className="text-4xl font-black tracking-tighter uppercase mb-4">Neural Gate Access</h3>
-                  <p className="monoscale text-[11px] font-black text-black/40 uppercase tracking-[0.3em]">Multi-Signature Node authorization control</p>
-                </div>
-                
-                <div className="p-12 space-y-12">
-                  {workspace?.userId === user?.uid && (
-                    <form onSubmit={handleAddCollaborator} className="flex gap-4">
-                      <div className="flex-1 relative group">
-                        <div className="absolute inset-0 bg-black opacity-0 group-focus-within:opacity-5 transition-opacity" />
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-black/30" />
-                        <input 
-                          value={newCollaboratorId}
-                          onChange={e => setNewCollaboratorId(e.target.value)}
-                          placeholder="ENTER OPERATOR UID..."
-                          className="w-full bg-[#F5F5F5] pl-14 pr-6 py-5 rounded-none border-2 border-transparent focus:border-black transition-all monoscale font-black uppercase text-sm"
-                        />
-                      </div>
-                      <button 
-                        type="submit"
-                        disabled={isAddingCollaborator || !newCollaboratorId}
-                        className="bg-black text-white px-10 py-5 rounded-none monoscale text-[11px] font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
-                      >
-                        {isAddingCollaborator ? 'AUTHORIZING...' : 'AUTHORIZE OPERATOR'}
-                      </button>
-                    </form>
-                  )}
+               <div className="glass-panel p-12 lathed-border relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-5 transition-opacity monoscale text-[8px]">SECURITY_PROTOCOL_LEVEL_4</div>
+                 <h3 className="text-5xl font-bold tracking-tighter uppercase mb-2 text-white">Cluster Access</h3>
+                 <p className="monoscale text-[10px] font-bold text-white/20 uppercase tracking-[0.5em] mb-12">User Permissions & Authentication Nodes</p>
+                 
+                 {workspace?.userId === user?.uid && (
+                   <form onSubmit={handleAddCollaborator} className="flex gap-6 mb-16 relative z-10">
+                     <div className="relative flex-1 group">
+                       <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-cyan transition-colors" />
+                       <input 
+                         value={newCollaboratorId}
+                         onChange={e => setNewCollaboratorId(e.target.value)}
+                         placeholder="node_identifier (email or uid)"
+                         className="w-full bg-white/5 border border-white/5 pl-16 pr-8 py-5 rounded-xl text-sm font-bold uppercase tracking-widest focus:border-cyan/50 focus:bg-white/[0.08] transition-all outline-none"
+                       />
+                     </div>
+                     <button 
+                       type="submit"
+                       disabled={isAddingCollaborator || !newCollaboratorId}
+                       className="bg-cyan text-black px-10 py-5 rounded-xl font-bold text-[11px] tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-20 flex items-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+                     >
+                       {isAddingCollaborator ? 'SYNCHRONIZING...' : 'PROVISION_ACCESS'}
+                     </button>
+                   </form>
+                 )}
 
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="flex items-center gap-6 p-6 bg-black text-white">
-                       <ShieldCheck className="w-8 h-8 text-green-500" />
-                       <div className="flex-1">
-                         <p className="text-lg font-black tracking-tighter uppercase leading-none mb-1">Root Administrator (You)</p>
-                         <p className="monoscale text-[10px] font-black text-white/40 uppercase tracking-widest">{workspace?.userId}</p>
+                 <div className="space-y-8">
+                   <h6 className="monoscale text-[9px] font-bold text-white/10 uppercase tracking-[0.5em] mb-6 px-2">Active_Nodes</h6>
+                   
+                   <div className="flex items-center justify-between p-6 bg-white/[0.03] border border-white/5 rounded-xl group hover:bg-black/40 transition-all border-l-2 border-l-cyan/50">
+                     <div className="flex items-center gap-6">
+                       <div className="w-12 h-12 rounded-xl bg-cyan shadow-[0_0_15px_rgba(34,211,238,0.2)] flex items-center justify-center text-black">
+                          <ShieldCheck className="w-6 h-6" />
                        </div>
-                       <span className="monoscale text-[10px] font-black border-2 border-white/20 px-3 py-1 uppercase tracking-widest">LEVEL_0_ROOT</span>
-                    </div>
+                       <div className="flex flex-col">
+                          <span className="text-base font-bold text-white/90 tabular-nums">Root Administrator (You)</span>
+                          <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-widest mt-1">{workspace?.userId}</span>
+                       </div>
+                     </div>
+                     <span className="monoscale text-[8px] font-bold text-cyan/60 uppercase tracking-widest px-3 py-1 bg-cyan/5 border border-cyan/20 rounded">LEVEL_0_ROOT</span>
+                   </div>
 
-                    {workspace?.collaborators?.map((uid: string) => (
-                      <div key={uid} className="flex items-center gap-6 p-6 bg-white border-2 border-black group hover:bg-black hover:text-white transition-all">
-                        <div className="w-14 h-14 bg-black/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
-                          <Users className="w-8 h-8 text-black/20 group-hover:text-white/40" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-lg font-black tracking-tighter uppercase leading-none mb-1">Authenticated Operator</p>
-                          <p className="monoscale text-[10px] font-black text-black/40 group-hover:text-white/40 uppercase tracking-widest">{uid}</p>
-                        </div>
-                        {workspace?.userId === user?.uid && (
-                          <button 
-                            onClick={() => removeCollaborator(uid)}
-                            className="text-[10px] font-black uppercase tracking-widest border-2 border-red-500 text-red-500 px-4 py-2 hover:bg-red-500 hover:text-white transition-all"
-                          >
-                            REVOKE_ACCESS
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                   {(workspace?.collaborators || []).map((uid: string) => (
+                     <div key={uid} className="flex items-center justify-between p-6 bg-white/[0.03] border border-white/5 rounded-xl group hover:bg-white/5 transition-all">
+                       <div className="flex items-center gap-6">
+                         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-white/40 group-hover:text-cyan transition-colors">
+                            <Users className="w-6 h-6" />
+                         </div>
+                         <div className="flex flex-col">
+                            <span className="text-base font-bold text-white/80 tabular-nums">{uid}</span>
+                            <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-widest mt-1">Authenticated Operator</span>
+                         </div>
+                       </div>
+                       {workspace?.userId === user?.uid && (
+                         <button 
+                           onClick={() => removeCollaborator(uid)}
+                           className="p-3 text-white/10 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                         >
+                           <X className="w-5 h-5" />
+                         </button>
+                       )}
+                     </div>
+                   ))}
 
-                    {(!workspace?.collaborators || workspace.collaborators.length === 0) && (
-                      <div className="py-24 text-center border-2 border-black border-dashed opacity-10">
-                        <Users className="w-24 h-24 mx-auto mb-6" />
-                        <p className="monoscale text-[11px] font-black uppercase tracking-[0.5em]">No secondary operators detected</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                   {(!workspace?.collaborators || workspace.collaborators.length === 0) && (
+                     <div className="py-24 text-center glass-panel border-dashed lathed-border opacity-20">
+                       <Users className="w-16 h-16 mx-auto mb-6 opacity-20" />
+                       <p className="monoscale text-[10px] font-bold uppercase tracking-[0.5em]">No secondary nodes detected</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
             </motion.div>
           )}
 
@@ -787,77 +972,88 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
 
       <AnimatePresence>
         {selectedFile && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 lg:p-20">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 lg:p-20 overflow-hidden">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedFile(null)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+              className="absolute inset-0 bg-[#050506]/90 backdrop-blur-3xl"
             />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan/10 via-transparent to-transparent pointer-events-none" />
             
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              initial={{ scale: 0.95, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              className="relative w-full max-w-6xl h-full max-h-[90vh] bg-[#F0F0EE] border-4 border-black overflow-hidden flex flex-col shadow-[40px_40px_0px_0px_rgba(0,0,0,0.5)]"
+              exit={{ scale: 0.95, opacity: 0, y: 30 }}
+              className="relative w-full max-w-7xl h-full glass-panel lathed-border overflow-hidden flex flex-col shadow-[0_40px_100px_rgba(0,0,0,0.9)] bg-white/[0.01]"
             >
-              <div className="p-8 border-b-4 border-black bg-white flex items-start justify-between">
+              <div className="p-10 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
                  <div className="flex-1">
-                   <div className="flex items-center gap-3 mb-4">
-                     <span className="monoscale text-[10px] font-black bg-black text-white px-2 py-0.5 uppercase tracking-widest">{selectedFile.doc_type}</span>
-                     <span className="monoscale text-[10px] font-black text-black/40 uppercase tracking-widest">{selectedFile.id}</span>
+                   <div className="flex items-center gap-4 mb-4">
+                     <span className="monoscale text-[9px] font-bold bg-cyan/10 text-cyan px-2 py-0.5 uppercase tracking-widest border border-cyan/20 rounded">{selectedFile.doc_type}</span>
+                     <span className="monoscale text-[9px] font-bold text-white/20 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded">NODE_{selectedFile.id.slice(0, 8)}</span>
                    </div>
-                   <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{selectedFile.title || selectedFile.originalFilename}</h2>
+                   <h2 className="text-4xl font-bold uppercase tracking-tighter text-white/90">{selectedFile.title || selectedFile.originalFilename}</h2>
                  </div>
                  <button 
                   onClick={() => setSelectedFile(null)}
-                  className="p-4 border-2 border-black hover:bg-black hover:text-white transition-all"
+                  className="p-4 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-all lathed-border"
                  >
                    <X className="w-6 h-6" />
                  </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-12 space-y-16 no-scrollbar">
-                <section className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+              <div className="flex-1 overflow-y-auto p-12 space-y-20 no-scrollbar relative">
+                {/* Background glow for summary */}
+                <div className="absolute top-0 left-0 w-80 h-80 bg-violet/5 blur-[120px] pointer-events-none" />
+
+                <section className="grid grid-cols-1 lg:grid-cols-3 gap-16 relative z-10">
                   <div className="lg:col-span-2 space-y-8">
-                     <h3 className="monoscale text-[11px] font-black uppercase tracking-[0.4em] text-black/30 border-b border-black/10 pb-4">Executive_Summary</h3>
-                     <p className="text-2xl leading-relaxed italic serif opacity-80">{selectedFile.summary}</p>
+                     <h3 className="monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-cyan/40 border-b border-white/5 pb-4">Extraction_Synthesis</h3>
+                     <p className="text-2xl leading-relaxed italic text-white/70 font-medium tracking-tight whitespace-pre-wrap">{selectedFile.summary}</p>
                   </div>
-                  <div className="space-y-8">
-                    <h3 className="monoscale text-[11px] font-black uppercase tracking-[0.4em] text-black/30 border-b border-black/10 pb-4">Extraction_Meta</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center py-2 border-b border-black/5">
-                        <span className="monoscale text-[10px] font-black uppercase opacity-40">Language</span>
-                        <span className="text-sm font-black uppercase">{selectedFile.language || 'EN_US'}</span>
+                  <div className="glass-panel p-8 lathed-border space-y-10 bg-white/[0.01]">
+                    <h3 className="monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-white/20 border-b border-white/5 pb-4">Operational_Meta</h3>
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="monoscale text-[9px] font-bold uppercase text-white/20 tracking-widest">Language</span>
+                        <span className="monoscale text-xs font-bold uppercase text-white/60 tracking-widest">{selectedFile.language || 'EN_DOMINANT'}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-black/5">
-                        <span className="monoscale text-[10px] font-black uppercase opacity-40">Status</span>
-                        <span className="text-sm font-black uppercase text-green-600">{selectedFile.status}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="monoscale text-[9px] font-bold uppercase text-white/20 tracking-widest">Integrity</span>
+                        <span className="monoscale text-xs font-bold uppercase text-cyan tracking-widest">SECURE_PASS</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="monoscale text-[9px] font-bold uppercase text-white/20 tracking-widest">Index_Nodes</span>
+                        <span className="monoscale text-xs font-bold uppercase text-white/60 tracking-widest">{(selectedFile as any).transcript_segments?.length || 0}</span>
                       </div>
                     </div>
                   </div>
                 </section>
 
-                <section className="grid grid-cols-1 lg:grid-cols-2 gap-20">
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                   <div className="space-y-10">
-                    <h3 className="monoscale text-[11px] font-black uppercase tracking-[0.4em] text-black/30 border-b border-black/10 pb-4">Key_Topics</h3>
+                    <h3 className="monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-violet/40 border-b border-white/5 pb-4">Key_Knowledge_Clusters</h3>
                     <div className="flex flex-wrap gap-3">
                       {selectedFile.key_topics?.map((topic: string, i: number) => (
-                        <div key={i} className="px-6 py-4 bg-white border-2 border-black font-black uppercase text-sm tracking-tight hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+                        <div key={i} className="px-5 py-3 glass-panel lathed-border bg-white/[0.02] text-white/60 font-bold uppercase text-[11px] tracking-widest hover:text-cyan hover:border-cyan/30 transition-all cursor-default">
                           {topic}
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="space-y-10">
-                    <h3 className="monoscale text-[11px] font-black uppercase tracking-[0.4em] text-black/30 border-b border-black/10 pb-4">Verified_Quotes</h3>
+                    <h3 className="monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-cyan/40 border-b border-white/5 pb-4">Verified_Truth_Particles</h3>
                     <div className="space-y-6">
                       {selectedFile.key_quotes?.map((quote: any, i: number) => (
-                        <div key={i} className="p-6 bg-black text-white relative">
-                          <Quote className="absolute top-4 right-4 w-10 h-10 text-white/5" />
-                          <p className="text-lg italic serif leading-relaxed mb-4">"{quote.text}"</p>
-                          <span className="monoscale text-[9px] font-black text-white/40 uppercase tracking-widest">{quote.location}</span>
+                        <div key={i} className="p-8 glass-panel lathed-border bg-white/[0.01] relative group">
+                          <Quote className="absolute top-6 right-6 w-10 h-10 text-white/[0.02] group-hover:text-cyan/10 transition-colors" />
+                          <p className="text-lg italic text-white/60 leading-relaxed mb-6 font-medium tracking-tight">"{quote.text}"</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_8px_rgba(34,211,238,0.4)]" />
+                            <span className="monoscale text-[9px] font-bold text-white/20 uppercase tracking-widest">{quote.location}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -865,16 +1061,16 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                 </section>
 
                 <section className="space-y-10">
-                  <h3 className="monoscale text-[11px] font-black uppercase tracking-[0.4em] text-black/30 border-b border-black/10 pb-4">Related_Operators</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <h3 className="monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-white/20 border-b border-white/5 pb-4">Relational_Nodes</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {selectedFile.speakers?.map((speaker: any, i: number) => (
-                      <div key={i} className="p-6 bg-white border-2 border-black flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black text-white flex items-center justify-center font-black text-xl">
+                      <div key={i} className="p-6 glass-panel lathed-border bg-white/[0.01] flex items-center gap-6 group hover:bg-white/[0.04] transition-all">
+                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 text-white/20 flex items-center justify-center font-bold text-lg group-hover:text-cyan group-hover:border-cyan/20 transition-all">
                           {speaker.name ? speaker.name[0] : '?'}
                         </div>
                         <div>
-                          <p className="font-black uppercase tracking-tight leading-none mb-1">{speaker.name}</p>
-                          <p className="monoscale text-[9px] font-black text-black/40 uppercase tracking-widest">{speaker.role || 'OPERATOR'}</p>
+                          <p className="text-sm font-bold text-white/80 uppercase tracking-tight mb-1">{speaker.name}</p>
+                          <p className="monoscale text-[8px] font-bold text-white/20 uppercase tracking-widest">{speaker.role || 'GHOST_OPERATOR'}</p>
                         </div>
                       </div>
                     ))}
@@ -882,9 +1078,12 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                 </section>
               </div>
               
-              <div className="p-8 bg-black text-white flex items-center justify-between monoscale text-[10px] font-black uppercase tracking-[0.5em]">
-                <span>Neural_Buffer_Readout_Active</span>
-                <span>End_Transmission</span>
+              <div className="p-10 border-t border-white/5 bg-black/40 flex items-center justify-between monoscale text-[10px] font-bold uppercase tracking-[0.5em] text-white/20">
+                <div className="flex items-center gap-4">
+                   <div className="w-2 h-2 rounded-full bg-cyan animate-pulse" />
+                   <span>Neural_Buffer_Active</span>
+                </div>
+                <span>End_Transmission_V4.2.0</span>
               </div>
             </motion.div>
           </div>
