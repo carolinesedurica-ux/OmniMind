@@ -162,6 +162,14 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
     };
   }, [workspaceId, user]);
 
+  const [isVercel, setIsVercel] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsVercel(window.location.hostname.includes('vercel.app'));
+    }
+  }, []);
+
   const handleAsk = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || isAsking) return;
@@ -431,6 +439,29 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
               className="h-full flex flex-col max-w-5xl mx-auto w-full relative"
             >
               <div className="flex-1 overflow-y-auto pt-10 px-10 pb-4 no-scrollbar">
+                {isVercel && !(typeof process !== 'undefined' && (process.env.API_KEY || process.env.GEMINI_API_KEY)) && !window.sessionStorage.getItem('OMNIMIND_AI_KEY') && (
+                  <div className="mb-10 p-8 border-2 border-red-500 bg-red-500/5 text-red-500 text-center space-y-4">
+                    <AlertTriangle className="w-12 h-12 mx-auto" />
+                    <h5 className="text-xl font-black uppercase tracking-tight">Neural Core Offline</h5>
+                    <p className="text-sm monoscale font-black uppercase tracking-widest opacity-80">
+                      GEMINI_API_KEY is not configured in Vercel environment.
+                    </p>
+                    <div className="pt-4 flex flex-col gap-4 max-w-sm mx-auto">
+                      <p className="text-[10px] monoscale font-black uppercase tracking-tighter opacity-60">
+                        Temporary Bypass: Run the following in your browser console:
+                      </p>
+                      <code className="text-[9px] bg-black text-white p-3 break-all focus:select-all cursor-pointer">
+                        window.sessionStorage.setItem('OMNIMIND_AI_KEY', 'YOUR_KEY_HERE')
+                      </code>
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="bg-black text-white py-3 font-black text-[10px] uppercase tracking-widest hover:bg-black/80 transition-all"
+                      >
+                        Reload Core
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {chatHistory.map((chat, i) => (
                   <div key={i} className="space-y-6">
                     <div className="flex justify-end">
