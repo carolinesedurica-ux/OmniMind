@@ -1,26 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const getAI = () => {
-  // 1. Try Environment Variables
-  let apiKey = (typeof process !== 'undefined' && (process.env.API_KEY || process.env.GEMINI_API_KEY)) || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  
-  // 2. Try Session Storage Fallback (for testing Vercel without redeploy)
-  if (!apiKey && typeof window !== 'undefined') {
-    apiKey = window.sessionStorage.getItem('OMNIMIND_AI_KEY');
-  }
+  const apiKey = (typeof process !== 'undefined' && (process.env.API_KEY || process.env.GEMINI_API_KEY)) || 
+                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+                 (typeof window !== 'undefined' && window.sessionStorage.getItem('OMNIMIND_AI_KEY'));
 
   if (!apiKey) {
-    if (typeof window !== 'undefined') {
-      if ((window as any).aistudio?.openSelectKey) {
-        (window as any).aistudio.openSelectKey();
-      }
-      
-      const isVercel = window.location.hostname.includes('vercel.app');
-      if (isVercel) {
-        throw new Error("API Key Missing: Set GEMINI_API_KEY in Vercel Environment Variables (prefixed with VITE_ for client-side) and redeploy. Alternatively, use window.sessionStorage.setItem('OMNIMIND_AI_KEY', 'YOUR_KEY') in the console for temporary access.");
-      }
+    if (typeof window !== 'undefined' && (window as any).aistudio?.openSelectKey) {
+      (window as any).aistudio.openSelectKey();
     }
-    throw new Error("Neural Core Offline: No API key found. Configure GEMINI_API_KEY to enable synthesis.");
+    throw new Error("Neural Core Offline: GEMINI_API_KEY missing. Access denied.");
   }
   return new GoogleGenAI({ apiKey });
 };
