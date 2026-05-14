@@ -311,10 +311,16 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                 </div>
                 
                 <section>
-                  <div className="flex items-center justify-between mb-6 border-b border-black/10 pb-2">
-                    <h4 className="monoscale text-[11px] font-black text-black uppercase tracking-[0.2em] flex items-center gap-3">
+                  <div 
+                    onClick={() => document.getElementById('file-ingestion-input')?.click()}
+                    className="flex items-center justify-between mb-6 border-b border-black/10 pb-4 cursor-pointer group/header hover:border-black transition-colors"
+                  >
+                    <h4 className="monoscale text-[11px] font-black text-black/40 group-hover/header:text-black uppercase tracking-[0.2em] flex items-center gap-3 transition-colors">
                       <Activity className="w-5 h-5" /> Data Ingestion Buffer
                     </h4>
+                    <span className="monoscale text-[9px] font-black text-black/20 group-hover/header:text-black/40 uppercase tracking-widest transition-colors">
+                      [+] INITIATE_MANUAL_INGESTION
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     {files.map(file => (

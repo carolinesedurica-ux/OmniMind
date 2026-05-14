@@ -27,6 +27,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -35,6 +36,20 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleSignIn = async () => {
+    setAuthError(null);
+    try {
+      await signIn();
+    } catch (err: any) {
+      if (err.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        setAuthError(`DOMAIN_UNAUTHORIZED: ${domain} is not whitelisted in Firebase. Add it to Authorized Domains in Firebase Console.`);
+      } else {
+        setAuthError(err.message || "Failed to authorize access.");
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -67,13 +82,22 @@ export default function App() {
           <p className="text-white/50 mb-12 max-w-sm text-center italic serif text-lg leading-relaxed">
             Expose the intelligence hidden in your corporate dark data. Video recordings, technical manuals, and audio logs, synthesized in one neural matrix.
           </p>
-          <button 
-            onClick={signIn}
-            className="w-full bg-white text-black py-5 rounded-none font-black text-xs tracking-[0.2em] uppercase hover:bg-white/90 transition-all flex items-center justify-center gap-4 border-2 border-white group"
-          >
-            Authorize Access
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          
+          <div className="w-full space-y-4">
+            <button 
+              onClick={handleSignIn}
+              className="w-full bg-white text-black py-5 rounded-none font-black text-xs tracking-[0.2em] uppercase hover:bg-white/90 transition-all flex items-center justify-center gap-4 border-2 border-white group"
+            >
+              Authorize Access
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            {authError && (
+              <div className="p-4 bg-red-500/10 border border-red-500 text-red-500 text-[10px] monoscale font-black uppercase tracking-widest text-center">
+                {authError}
+              </div>
+            )}
+          </div>
           
           <div className="mt-16 grid grid-cols-3 gap-8 w-full border-t border-white/10 pt-8 opacity-40">
             <div className="text-center">

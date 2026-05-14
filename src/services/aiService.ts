@@ -1,12 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const getAI = () => {
-  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  const apiKey = (typeof process !== 'undefined' && (process.env.API_KEY || process.env.GEMINI_API_KEY)) || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    if (typeof window !== 'undefined' && (window as any).aistudio?.openSelectKey) {
-      (window as any).aistudio.openSelectKey();
+    if (typeof window !== 'undefined') {
+      if ((window as any).aistudio?.openSelectKey) {
+        (window as any).aistudio.openSelectKey();
+      }
+      
+      const isVercel = window.location.hostname.includes('vercel.app');
+      if (isVercel) {
+        throw new Error("API Key Missing: Please set GEMINI_API_KEY in Vercel 'Environment Variables' and redeploy.");
+      }
     }
-    throw new Error("No API key found. Please select an API key from the settings.");
+    throw new Error("Neural Core Offline: No API key found. Configure GEMINI_API_KEY to enable synthesis.");
   }
   return new GoogleGenAI({ apiKey });
 };
