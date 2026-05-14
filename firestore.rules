@@ -1,22 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Pillar 0: Global Safety Net
+    
+    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // --- GLOBAL HELPERS ---
+    // Phase 3: Primitives & Helpers
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isVerified() {
-      return isSignedIn() && (request.auth.token.email_verified == true);
-    }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128;
     }
 
     function incoming() {
@@ -27,58 +24,142 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Connection Test Document
-    match /test/connection {
-      allow read: if isSignedIn();
+    function isOwner(workspaceData) {
+      return isSignedIn() && workspaceData.userId == request.auth.uid;
     }
 
-    // --- WORKSPACES ---
-    match /workspaces/{workspaceId} {
-      function isValidWorkspace(data) {
-        return data.keys().hasAll(['name', 'ownerId', 'createdAt']) &&
-               data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
-               data.ownerId == request.auth.uid &&
-               data.createdAt == request.time;
-      }
+    function isCollaborator(workspaceId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.get('collaborators', []);
+    }
 
-      // Use a more defensive list rule that won't fail if ownerId is missing on a document
-      allow list: if isSignedIn() && resource.data.get('ownerId', null) == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.get('ownerId', null) == request.auth.uid && isValidId(workspaceId);
+    function hasWorkspaceAccess(workspaceId) {
+      let workspace = get(/databases/$(database)/documents/workspaces/$(workspaceId)).data;
+      return isSignedIn() && (workspace.userId == request.auth.uid || request.auth.uid in workspace.get('collaborators', []));
+    }
+
+    // Phase 4: Entity Validations
+    function isValidWorkspace(data) {
+      return data.keys().hasAll(['name', 'userId', 'createdAt']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.userId == request.auth.uid &&
+             (data.get('vertical', '') is string);
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    function isValidFile(data) {
+      return data.keys().hasAll(['id', 'workspaceId', 'status', 'createdAt']) &&
+             data.keys().size() <= 20 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.workspaceId is string &&
+             data.status in ['processing', 'processed', 'indexing', 'completed', 'failed'] &&
+             data.createdAt == request.time &&
+             (data.get('originalFilename', '') is string) &&
+             (data.get('contentType', '') is string);
+    }
+
+    function isValidSegment(data) {
+      return data.keys().hasAll(['fileId', 'workspaceId', 'text', 'start', 'end', 'topic']) &&
+             data.keys().size() <= 10 &&
+             data.text is string && data.text.size() <= 5000 &&
+             data.topic is string && data.topic.size() <= 200;
+    }
+
+    function isValidEntity(data) {
+      return data.keys().hasAll(['fileId', 'workspaceId', 'name', 'type']) &&
+             data.keys().size() <= 10 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.type is string && data.type.size() <= 100;
+    }
+
+    function isValidRisk(data) {
+      return data.keys().hasAll(['fileId', 'workspaceId', 'title', 'severity', 'rationale']) &&
+             data.keys().size() <= 10 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.severity in ['low', 'medium', 'high', 'critical'] &&
+             data.rationale is string && data.rationale.size() <= 2000;
+    }
+
+    function isValidQuery(data) {
+      return data.keys().hasAll(['question', 'answer', 'createdAt']) &&
+             data.keys().size() <= 10 &&
+             data.question is string && data.question.size() <= 1000 &&
+             data.answer is string && data.answer.size() <= 10000 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidBrief(data) {
+      return data.keys().hasAll(['title', 'tldr', 'createdAt']) &&
+             data.keys().size() <= 15 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.tldr is string && data.tldr.size() <= 2000 &&
+             data.createdAt == request.time;
+    }
+
+    // --- Workspaces ---
+    match /workspaces/{workspaceId} {
+      allow get: if isSignedIn() && (isOwner(existing()) || request.auth.uid in existing().get('collaborators', []));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || request.auth.uid in resource.data.get('collaborators', []));
       
       allow create: if isSignedIn() && isValidWorkspace(incoming()) && isValidId(workspaceId);
       
-      allow update: if isSignedIn() && isValidId(workspaceId) && 
-                    existing().get('ownerId', null) == request.auth.uid &&
-                    incoming().get('ownerId', null) == request.auth.uid &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'vertical']);
+      allow update: if isSignedIn() && (
+        // Action: Update Metadata
+        (isOwner(existing()) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'vertical', 'description', 'collaborators'])
+        ))
+      );
+      
+      allow delete: if isOwner(existing());
 
-      allow delete: if isSignedIn() && existing().get('ownerId', null) == request.auth.uid && isValidId(workspaceId);
-
-      // --- SUB-RESOURCES ---
-      // Pillar 1: Relational Sync (The Master Gate)
-      function canAccessWorkspace() {
-        return get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
-      }
-
+      // --- Subcollections ---
+      
       match /files/{fileId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidFile(incoming()) && isValidId(fileId);
+        allow update: if hasWorkspaceAccess(workspaceId) && (
+          incoming().id == existing().id && 
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          (
+            // Action: AI Processing Update
+            (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'processedAt', 'summary', 'doc_type', 'language', 'speakers', 'transcript_segments', 'key_topics', 'key_quotes']))
+          )
+        );
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
+
       match /segments/{segmentId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidSegment(incoming());
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
+
       match /entities/{entityId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidEntity(incoming());
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
+
       match /risks/{riskId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidRisk(incoming());
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
+
       match /queries/{queryId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidQuery(incoming());
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
+
       match /briefs/{briefId} {
-        allow read, write: if isVerified() && canAccessWorkspace();
+        allow read: if hasWorkspaceAccess(workspaceId);
+        allow create: if hasWorkspaceAccess(workspaceId) && isValidBrief(incoming());
+        allow delete: if hasWorkspaceAccess(workspaceId);
       }
     }
   }
 }
-

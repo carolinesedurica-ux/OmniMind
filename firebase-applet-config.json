@@ -1,10 +1,10 @@
 {
-  "projectId": "gen-lang-client-0490394213",
-  "appId": "1:509684894124:web:db43f0d49a55bdb2dc5209",
-  "apiKey": "AIzaSyBhGrC6rSeBbH8j67QO1lGbSW1fR_L6rFI",
-  "authDomain": "gen-lang-client-0490394213.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-buildthat-c05fc852-2a51-4894-874b-64c3bf5d3367",
-  "storageBucket": "gen-lang-client-0490394213.firebasestorage.app",
-  "messagingSenderId": "509684894124",
+  "projectId": "omnimind-56468",
+  "appId": "1:23381884884:web:7b8142d864256a6d066041",
+  "apiKey": "AIzaSyCdm7nAF-AVY-LT132PR9Eo2aRN4DjtcjE",
+  "authDomain": "omnimind-56468.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "omnimind-56468.firebasestorage.app",
+  "messagingSenderId": "23381884884",
   "measurementId": ""
 }

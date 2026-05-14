@@ -2,82 +2,137 @@
   "entities": {
     "Workspace": {
       "title": "Workspace",
-      "description": "A collection of files and extracted knowledge for a specific context (e.g. M&A Diligence)",
+      "description": "An isolated container for multimodal data analysis and intelligence synthesis.",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
         "name": { "type": "string" },
         "vertical": { "type": "string" },
         "description": { "type": "string" },
+        "userId": { "type": "string" },
+        "collaborators": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "createdAt"]
+      "required": ["name", "userId", "createdAt"]
     },
     "File": {
       "title": "File",
-      "description": "Metadata for an uploaded and processed file",
+      "description": "Represents an uploaded file and its multimodal ingestion metadata.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "workspaceId": { "type": "string" },
         "originalFilename": { "type": "string" },
         "contentType": { "type": "string" },
-        "docType": { "type": "string" },
-        "status": { "type": "string", "enum": ["queued", "processing", "completed", "failed"] },
+        "status": { "type": "string" },
         "summary": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "doc_type": { "type": "string" },
+        "language": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "processedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "workspaceId", "originalFilename", "status"]
+      "required": ["id", "workspaceId", "status", "createdAt"]
     },
-    "TranscriptSegment": {
-      "title": "Transcript Segment",
-      "description": "A chunk of text from a file with temporal or spatial mapping",
+    "Segment": {
+      "title": "Segment",
+      "description": "A focused segment of a file's transcript or breakdown.",
       "type": "object",
       "properties": {
         "fileId": { "type": "string" },
         "workspaceId": { "type": "string" },
+        "speaker": { "type": "string" },
         "text": { "type": "string" },
+        "topic": { "type": "string" },
         "start": { "type": "string" },
-        "speaker": { "type": "string" }
-      }
+        "end": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fileId", "workspaceId", "text"]
+    },
+    "Entity": {
+      "title": "Entity",
+      "description": "A structured entity extracted from the workspace data.",
+      "type": "object",
+      "properties": {
+        "fileId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "mentions": { "type": "array", "items": { "type": "string" } },
+        "context": { "type": "string" }
+      },
+      "required": ["fileId", "workspaceId", "name", "type"]
     },
     "Risk": {
       "title": "Risk",
-      "description": "An extracted risk from the documentation",
+      "description": "A strategic risk identified during file indexing.",
       "type": "object",
       "properties": {
         "fileId": { "type": "string" },
         "workspaceId": { "type": "string" },
         "title": { "type": "string" },
-        "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+        "severity": { "type": "string" },
+        "evidence": { "type": "string" },
         "rationale": { "type": "string" }
-      }
+      },
+      "required": ["fileId", "workspaceId", "title", "severity"]
+    },
+    "Query": {
+      "title": "Query",
+      "description": "A neural synthesis query and its grounded response.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "confidence": { "type": "string" },
+        "citations": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "answer", "createdAt"]
+    },
+    "Brief": {
+      "title": "Brief",
+      "description": "An executive intelligence brief generated for leadership.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "tldr": { "type": "string" },
+        "key_findings": { "type": "array", "items": { "type": "string" } },
+        "risk_summary": { "type": "array" },
+        "recommended_actions": { "type": "array" },
+        "next_steps_email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "tldr", "createdAt"]
     }
   },
   "firestore": {
-    "/workspaces/{workspaceId}": {
+    "workspaces/{workspaceId}": {
       "schema": "Workspace",
-      "description": "Top-level workspaces"
+      "description": "The root workspace document."
     },
-    "/workspaces/{workspaceId}/files/{fileId}": {
+    "workspaces/{workspaceId}/files/{fileId}": {
       "schema": "File",
-      "description": "Files within a workspace"
+      "description": "Files uploaded to a workspace."
     },
-    "/workspaces/{workspaceId}/segments/{segmentId}": {
-      "schema": "TranscriptSegment",
-      "description": "Transcript segments across files"
+    "workspaces/{workspaceId}/segments/{segmentId}": {
+      "schema": "Segment",
+      "description": "Transcript segments for files in a workspace."
     },
-    "/workspaces/{workspaceId}/risks/{riskId}": {
+    "workspaces/{workspaceId}/entities/{entityId}": {
+      "schema": "Entity",
+      "description": "Entities extracted from workspace content."
+    },
+    "workspaces/{workspaceId}/risks/{riskId}": {
       "schema": "Risk",
-      "description": "Extracted risks"
+      "description": "Risks identified in workspace content."
     },
-    "/workspaces/{workspaceId}/entities/{entityId}": {
-      "schema": "object",
-      "description": "Extracted entities"
+    "workspaces/{workspaceId}/queries/{queryId}": {
+      "schema": "Query",
+      "description": "Synthesis queries and AI responses."
     },
-    "/workspaces/{workspaceId}/queries/{queryId}": {
-      "schema": "object",
-      "description": "User queries and AI answers"
+    "workspaces/{workspaceId}/briefs/{briefId}": {
+      "schema": "Brief",
+      "description": "Executive briefs generated for the workspace."
     }
   }
 }

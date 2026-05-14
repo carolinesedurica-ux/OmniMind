@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { ingestFile, indexData, DocType } from '../services/aiService';
-import { handleFirestoreError, OperationType } from '../lib/errorUtils';
+import { handleFirestoreError, OperationType } from '../lib/error-utils';
 
 interface FileUploadProps {
   workspaceId: string;
@@ -28,7 +28,7 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
       'audio/*': ['.mp3', '.wav', '.m4a'],
       'text/*': ['.txt', '.md', '.csv']
     }
-  });
+  } as any);
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
@@ -73,34 +73,40 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
 
       // Save segments
       setProgress(prev => ({ ...prev, [file.name]: 'Indexing Entities...' }));
-      for (const seg of ingestion.transcript_segments) {
-        await addDoc(collection(db, 'workspaces', workspaceId, 'segments'), {
-          ...seg,
-          fileId,
-          workspaceId,
-          createdAt: serverTimestamp()
-        });
+      if (ingestion && Array.isArray(ingestion.transcript_segments)) {
+        for (const seg of ingestion.transcript_segments) {
+          await addDoc(collection(db, 'workspaces', workspaceId, 'segments'), {
+            ...seg,
+            fileId,
+            workspaceId,
+            createdAt: serverTimestamp()
+          });
+        }
       }
 
       // 4. Index via AI Service
       const indexing = await indexData(JSON.stringify(ingestion));
       
       // Save entities
-      for (const ent of indexing.entities) {
-        await addDoc(collection(db, 'workspaces', workspaceId, 'entities'), {
-          ...ent,
-          fileId,
-          workspaceId
-        });
+      if (indexing && Array.isArray(indexing.entities)) {
+        for (const ent of indexing.entities) {
+          await addDoc(collection(db, 'workspaces', workspaceId, 'entities'), {
+            ...ent,
+            fileId,
+            workspaceId
+          });
+        }
       }
 
       // Save risks
-      for (const risk of indexing.risks) {
-        await addDoc(collection(db, 'workspaces', workspaceId, 'risks'), {
-          ...risk,
-          fileId,
-          workspaceId
-        });
+      if (indexing && Array.isArray(indexing.risks)) {
+        for (const risk of indexing.risks) {
+          await addDoc(collection(db, 'workspaces', workspaceId, 'risks'), {
+            ...risk,
+            fileId,
+            workspaceId
+          });
+        }
       }
 
       // Update final status
@@ -130,77 +136,90 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div 
         {...getRootProps()} 
-        className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer bg-white/5
-          ${isDragActive ? 'border-black bg-black/5' : 'border-black/10 hover:border-black/20'}`}
+        className={`border-2 border-dashed p-16 text-center transition-all cursor-pointer relative overflow-hidden group
+          ${isDragActive ? 'border-black bg-black text-white' : 'border-black/20 hover:border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}`}
       >
-        <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-4 bg-white rounded-xl shadow-sm">
-            <Upload className="w-8 h-8 text-black" />
+        <input {...getInputProps()} id="file-ingestion-input" />
+        <div className="flex flex-col items-center gap-6">
+          <div className={`p-6 transition-colors ${isDragActive ? 'bg-white/10' : 'bg-black/5'} rounded-none mb-2`}>
+            <Upload className={`w-10 h-10 ${isDragActive ? 'text-white' : 'text-black'}`} />
           </div>
           <div>
-            <p className="text-xl font-bold">Inject Dark Data</p>
-            <p className="text-black/40 text-sm">Drop PDF, Video, Audio, or Text files</p>
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Ingestion Port</h3>
+            <p className={`monoscale text-[10px] font-black uppercase tracking-[0.3em] ${isDragActive ? 'text-white/60' : 'text-black/40'}`}>
+              Accepting PDF / MP4 / MOV / MP3 / TXT / MD
+            </p>
           </div>
         </div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-4 left-4 monoscale text-[9px] font-black opacity-20 uppercase tracking-widest">DRAG_DROP_OR_CLICK</div>
+        <div className="absolute bottom-4 right-4 monoscale text-[9px] font-black opacity-20 uppercase tracking-widest">PORT_READY</div>
       </div>
 
       <AnimatePresence>
         {files.length > 0 && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white border border-black/10 rounded-2xl overflow-hidden shadow-xl"
+            className="bg-white border-2 border-black overflow-hidden shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]"
           >
-            <div className="p-4 border-b border-black/5 bg-black/[0.02] flex items-center justify-between">
-              <span className="monoscale text-[11px] font-bold">Extraction Buffer ({files.length})</span>
+            <div className="p-6 border-b-2 border-black bg-[#F0F0EE] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                <span className="monoscale text-[11px] font-black uppercase tracking-widest">Extraction Buffer ({files.length})</span>
+              </div>
               {!uploading && (
                 <button 
                   onClick={uploadAll}
-                  className="btn-primary text-xs py-1.5 px-4 flex items-center gap-2"
+                  className="bg-black text-white text-[10px] font-black uppercase tracking-widest py-3 px-8 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
                 >
-                  <Cpu className="w-3 h-3" />
+                  <Cpu className="w-4 h-4" />
                   Initiate Mining
                 </button>
               )}
             </div>
             
-            <div className="max-h-[300px] overflow-y-auto divide-y divide-black/5">
+            <div className="max-h-[400px] overflow-y-auto divide-y-2 divide-black/5">
               {files.map((file, i) => (
-                <div key={i} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {file.type.startsWith('video') ? <Video className="w-4 h-4 text-black/40" /> : 
-                     file.type.startsWith('audio') ? <Music className="w-4 h-4 text-black/40" /> :
-                     <FileText className="w-4 h-4 text-black/40" />}
+                <div key={i} className="p-6 flex items-center justify-between group hover:bg-[#F8F8F8] transition-colors">
+                  <div className="flex items-center gap-6">
+                    <div className="p-3 bg-black/5 text-black">
+                      {file.type.startsWith('video') ? <Video className="w-5 h-5" /> : 
+                       file.type.startsWith('audio') ? <Music className="w-5 h-5" /> :
+                       <FileText className="w-5 h-5" />}
+                    </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">{file.name}</span>
-                      <span className="text-[10px] monoscale text-black/40">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      <span className="text-sm font-black uppercase tracking-tight truncate max-w-[300px]">{file.name}</span>
+                      <span className="text-[10px] monoscale font-black text-black/40 uppercase tracking-widest mt-1">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[1]?.toUpperCase() || 'DATA'}
+                      </span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     {progress[file.name] ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
                         {progress[file.name] === 'COMPLETED' ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
                         ) : progress[file.name] === 'FAILED' ? (
-                          <AlertCircle className="w-4 h-4 text-red-500" />
+                          <AlertCircle className="w-5 h-5 text-red-500" />
                         ) : (
-                          <div className="w-3 h-3 border border-black/20 border-t-black rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                         )}
-                        <span className="monoscale text-[10px] font-bold text-black/60">{progress[file.name]}</span>
+                        <span className="monoscale text-[10px] font-black text-black/60 uppercase tracking-widest">{progress[file.name]}</span>
                       </div>
                     ) : (
                       <button 
                         disabled={uploading}
                         onClick={() => removeFile(i)}
-                        className="p-1 hover:bg-black/5 rounded-full"
+                        className="p-2 border border-black/10 hover:bg-black hover:text-white transition-all text-black/30"
                       >
-                        <X className="w-4 h-4 text-black/40" />
+                        <X className="w-5 h-5" />
                       </button>
                     )}
                   </div>
