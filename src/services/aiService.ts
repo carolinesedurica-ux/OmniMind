@@ -2,13 +2,18 @@ import { DocType, IngestionResult, IndexingResult, AgentEvent, AuditResult } fro
 export { DocType };
 
 const callAI = async (payload: any): Promise<{ text: string }> => {
-  const response = await fetch('/api/neural/generate', {
+  const url = '/api/neural/generate';
+  console.log(`[AI_CLIENT] Calling ${url} with model: ${payload.model}`);
+  
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   
+  console.log(`[AI_CLIENT] Received status: ${response.status} ${response.statusText}`);
   const contentType = response.headers.get("content-type");
+  console.log(`[AI_CLIENT] Content-Type: ${contentType}`);
   
   if (!response.ok) {
     if (contentType && contentType.includes("application/json")) {
@@ -16,7 +21,7 @@ const callAI = async (payload: any): Promise<{ text: string }> => {
       throw new Error(err.error || "Neural Core Communication Error");
     } else {
       const text = await response.text();
-      console.error("[NEURAL_SYNK_ERROR] Received non-JSON error response:", text.slice(0, 500));
+      console.error("[NEURAL_SYNK_ERROR] Received non-JSON error response (first 100 chars):", text.slice(0, 100));
       throw new Error(`Neural Matrix Sync Failure: ${response.status} ${response.statusText}`);
     }
   }
@@ -24,6 +29,8 @@ const callAI = async (payload: any): Promise<{ text: string }> => {
   if (contentType && contentType.includes("application/json")) {
     return response.json();
   } else {
+    const rawText = await response.text();
+    console.warn("[AI_CLIENT] Received non-JSON success response:", rawText.slice(0, 100));
     throw new Error("Neural Matrix returned protocol-incompatible format (Expected JSON)");
   }
 };

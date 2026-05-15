@@ -3,7 +3,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, where, or } from 'firebase/firestore';
 import { Plus, Database, ArrowRight, Activity, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { handleFirestoreError, OperationType } from '../lib/error-utils';
+import { handleFirestoreError, OperationType } from '../lib/errorHandlers';
 
 interface Workspace {
   id: string;

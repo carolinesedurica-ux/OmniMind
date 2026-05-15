@@ -34,7 +34,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import FileUpload from './FileUpload';
 import { askWorkspace, generateExecutiveBrief, runMultiAgentAudit } from '../services/aiService';
-import { handleFirestoreError, OperationType } from '../lib/error-utils';
+import { handleFirestoreError, OperationType } from '../lib/errorHandlers';
 
 interface WorkspaceDetailProps {
   user: any;

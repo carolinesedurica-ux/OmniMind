@@ -53,7 +53,18 @@ async function startServer() {
   });
 
   app.use((req, res, next) => {
-    console.log(`[REQUEST] ${new Date().toISOString()} ${req.method} ${req.url}`);
+    const timestamp = new Date().toISOString();
+    
+    if (req.url.startsWith('/src/') || req.url.includes('errorHandlers') || req.url.includes('errorUtils') || req.url.includes('error-utils')) {
+      const start = Date.now();
+      const referer = req.get('Referer');
+      res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[SRC_LOG] ${res.statusCode} | ${req.method} | ${req.url} | ${duration}ms | Ref: ${referer}`);
+      });
+    } else {
+      console.log(`[SYS] ${timestamp} | ${req.method} | ${req.url}`);
+    }
     next();
   });
 
@@ -68,43 +79,51 @@ async function startServer() {
       status: "online", 
       gateway: "OmniMind Neural Matrix", 
       ai_available: !!ai,
+      env: process.env.NODE_ENV,
       timestamp: new Date().toISOString()
     });
   });
 
   // Gemini Proxy Endpoint
   app.post("/api/neural/generate", async (req, res) => {
-    console.log(`[AI_GATEWAY] Entering Generate Protocol: ${req.body?.model || 'unspecified'}`);
+    const aiLogId = Math.random().toString(36).substring(7);
+    console.log(`[AI_GATEWAY][${aiLogId}] Entering Generate Protocol. Model=${req.body?.model || 'unspecified'}`);
+    
     try {
       if (!ai) {
-        console.error("[AI_GATEWAY] Error: GEMINI_API_KEY missing or initialization failed");
+        console.error(`[AI_GATEWAY][${aiLogId}] Error: GEMINI_API_KEY missing or initialization failed`);
         return res.status(503).json({ error: "Neural Core Offline: GEMINI_API_KEY is not configured." });
       }
 
       const { model, contents, config } = req.body;
       
+      if (!contents || !Array.isArray(contents)) {
+        console.warn(`[AI_GATEWAY][${aiLogId}] Warning: Received invalid contents sequence`);
+        return res.status(400).json({ error: "Invalid contents sequence" });
+      }
+
       // Map models to robust versions according to skill guidelines
       const modelName = model?.includes('pro') ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
       
-      console.log(`[AI_GATEWAY] Dispatching to Model=${modelName}`);
+      console.log(`[AI_GATEWAY][${aiLogId}] Dispatching to Model=${modelName}`);
       
       const response = await ai.models.generateContent({
         model: modelName,
-        contents: contents || [],
+        contents: contents,
         config: config || {}
       });
 
       const text = response.text;
       
       if (!text) {
-        console.warn("[AI_GATEWAY] Warning: Received empty response from model");
+        console.warn(`[AI_GATEWAY][${aiLogId}] Warning: Received empty response from model`);
         throw new Error("AI Protocol returned empty response sequence.");
       }
 
-      console.log(`[AI_GATEWAY] Protocol Success: Received ${text.length} characters`);
+      console.log(`[AI_GATEWAY][${aiLogId}] Protocol Success: Received ${text.length} characters`);
       res.json({ text });
     } catch (error: any) {
-      console.error("[AI_GATEWAY_ERROR]", error);
+      console.error(`[AI_GATEWAY_ERROR][${aiLogId}]`, error);
       const status = error.message?.includes('quota') || error.message?.includes('429') ? 429 : 500;
       res.status(status).json({ 
         error: error.message || "Neural Core Sync Failure",
@@ -130,6 +149,10 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      // Don't serve index.html for obviously missing source files
+      if (req.url.startsWith('/src/') || req.url.endsWith('.ts') || req.url.endsWith('.tsx')) {
+        return res.status(404).send('Source file not found');
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { ingestFile, indexData, DocType } from '../services/aiService';
-import { handleFirestoreError, OperationType } from '../lib/error-utils';
+import { handleFirestoreError, OperationType } from '../lib/errorHandlers';
 
 interface FileUploadProps {
   workspaceId: string;
