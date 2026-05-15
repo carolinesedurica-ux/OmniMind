@@ -2,7 +2,7 @@ import { DocType, IngestionResult, IndexingResult, AgentEvent, AuditResult } fro
 export { DocType };
 
 const callAI = async (payload: any): Promise<{ text: string }> => {
-  const response = await fetch('/api/ai/generate', {
+  const response = await fetch('/api/neural/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

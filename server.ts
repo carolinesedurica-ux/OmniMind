@@ -44,19 +44,28 @@ async function startServer() {
   app.use(express.json({ limit: '100mb' }));
 
   app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
+    console.log(`[REQUEST] ${new Date().toISOString()} ${req.method} ${req.url}`);
     next();
   });
 
-  app.get("/api/ai/health", (req, res) => {
-    res.json({ status: "ok", gateway: "Neural Matrix", ai_available: !!ai });
+  // Diagnostic endpoint
+  app.get("/api/neural/health", (req, res) => {
+    console.log("[HEALTH_CHECK] Responding to health query");
+    res.json({ 
+      status: "online", 
+      gateway: "OmniMind Neural Matrix", 
+      ai_available: !!ai,
+      timestamp: new Date().toISOString()
+    });
   });
 
-  // Gemini Proxy Endpoint
-  app.post("/api/ai/generate", async (req, res) => {
+  // Gemini Proxy Endpoint - Renamed for clarity and to avoid any potential proxy collision
+  app.post("/api/neural/generate", async (req, res) => {
+    console.log(`[AI_GATEWAY] Entering Generate Protocol: ${req.body?.model || 'default'}`);
     try {
       if (!ai) {
-        throw new Error("Neural Core Offline: GEMINI_API_KEY is not configured on the orchestration layer.");
+        console.error("[AI_GATEWAY] Error: GEMINI_API_KEY missing");
+        return res.status(503).json({ error: "Neural Core Offline: GEMINI_API_KEY is not configured." });
       }
 
       const { model, contents, config } = req.body;
@@ -64,7 +73,7 @@ async function startServer() {
       // Map models to robust versions according to skill guidelines
       const modelName = model?.includes('pro') ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
       
-      console.log(`[AI_GATEWAY] ${req.ip} -> Requesting ${modelName}`);
+      console.log(`[AI_GATEWAY] Dispatching to Model=${modelName}`);
       
       const response = await ai.models.generateContent({
         model: modelName,
@@ -75,10 +84,11 @@ async function startServer() {
       const text = response.text;
       
       if (!text) {
+        console.warn("[AI_GATEWAY] Warning: Received empty response from model");
         throw new Error("AI Protocol returned empty response sequence.");
       }
 
-      console.log(`[AI_GATEWAY] ${modelName} -> Response Success (${text.length} chars)`);
+      console.log(`[AI_GATEWAY] Protocol Success: Received ${text.length} characters`);
       res.json({ text });
     } catch (error: any) {
       console.error("[AI_GATEWAY_ERROR]", error);
@@ -89,6 +99,12 @@ async function startServer() {
         code: error.status || status
       });
     }
+  });
+
+  // Catch-all for API routes to diagnose 404s
+  app.use("/api/*", (req, res) => {
+    console.warn(`[404_API] Unmatched API Route: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ error: `API Route Not Found: ${req.originalUrl}` });
   });
 
   if (process.env.NODE_ENV !== "production") {
