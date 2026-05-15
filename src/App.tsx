@@ -107,8 +107,11 @@ export default function App() {
             </button>
 
             <button 
-              onClick={() => setShowPreview(true)}
-              className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/5 monoscale"
+              onClick={() => {
+                console.log("Protocol Insight Requested");
+                setShowPreview(true);
+              }}
+              className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/10 monoscale relative z-30"
             >
               Protocol_Insight: Public_Preview
             </button>
