@@ -21,7 +21,7 @@ const getFirestoreDb = () => {
 
 export const db = getFirestoreDb();
 export const auth = getAuth(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export const analytics = typeof window !== 'undefined' && firebaseConfig.measurementId ? getAnalytics(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 export const signIn = async () => {

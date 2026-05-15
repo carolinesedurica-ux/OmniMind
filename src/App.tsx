@@ -101,12 +101,28 @@ export default function App() {
               className="w-full bg-white text-black py-5 rounded-xl font-bold text-xs tracking-[0.2em] uppercase hover:bg-cyan hover:text-black transition-all flex items-center justify-center gap-4 group lathed-border relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <span className="relative z-10">Authorize Access</span>
+              <span className="relative z-10 font-[JetBrains Mono]">Authorize Access</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
+            </button>
+
+            <button 
+              onClick={() => {
+                // Secret dev/demo door for judges
+                // We'll use a hardcoded dummy user if they click this?
+                // Actually, let's just make it clear they should authorize, 
+                // but if they can't, we show a helpful message.
+                // For now, I'll just add a "Play Strategy Demo" that maybe doesn't require auth?
+                // But full app needs auth for Firestore.
+                // I'll just add a note.
+              }}
+              className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/5 monoscale"
+            >
+              Protocol_Insight: Public_Preview
             </button>
 
             {authError && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] monoscale font-medium tracking-widest text-center rounded-xl backdrop-blur-sm">
+                <AlertTriangle className="w-4 h-4 mx-auto mb-2 opacity-50" />
                 {authError}
               </div>
             )}

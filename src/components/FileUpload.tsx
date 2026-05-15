@@ -139,85 +139,88 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
     <div className="space-y-8">
       <div 
         {...getRootProps()} 
-        className={`border-2 border-dashed p-16 text-center transition-all cursor-pointer relative overflow-hidden group
-          ${isDragActive ? 'border-black bg-black text-white' : 'border-black/20 hover:border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}`}
+        className={`lathed-border p-16 text-center transition-all cursor-pointer relative overflow-hidden group
+          ${isDragActive ? 'bg-cyan/10 border-cyan shadow-[0_0_80px_rgba(34,211,238,0.2)]' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'}`}
       >
         <input {...getInputProps()} id="file-ingestion-input" />
         <div className="flex flex-col items-center gap-6">
-          <div className={`p-6 transition-colors ${isDragActive ? 'bg-white/10' : 'bg-black/5'} rounded-none mb-2`}>
-            <Upload className={`w-10 h-10 ${isDragActive ? 'text-white' : 'text-black'}`} />
+          <div className={`p-6 transition-colors ${isDragActive ? 'bg-cyan/20' : 'bg-white/5'} rounded-2xl mb-2 relative group`}>
+            <div className="absolute inset-0 bg-cyan/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Upload className={`w-10 h-10 relative z-10 ${isDragActive ? 'text-cyan' : 'text-white/40 group-hover:text-cyan'}`} />
           </div>
           <div>
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Ingestion Port</h3>
-            <p className={`monoscale text-[10px] font-black uppercase tracking-[0.3em] ${isDragActive ? 'text-white/60' : 'text-black/40'}`}>
+            <h3 className="text-3xl font-bold uppercase tracking-tighter mb-2 text-white group-hover:text-cyan transition-colors">Ingestion Port</h3>
+            <p className={`monoscale text-[10px] font-bold uppercase tracking-[0.3em] ${isDragActive ? 'text-cyan/60' : 'text-white/20'}`}>
               Accepting PDF / MP4 / MOV / MP3 / TXT / MD
             </p>
           </div>
         </div>
         
         {/* Decorative elements */}
-        <div className="absolute top-4 left-4 monoscale text-[9px] font-black opacity-20 uppercase tracking-widest">DRAG_DROP_OR_CLICK</div>
-        <div className="absolute bottom-4 right-4 monoscale text-[9px] font-black opacity-20 uppercase tracking-widest">PORT_READY</div>
+        <div className="absolute top-4 left-4 monoscale text-[8px] font-bold opacity-10 uppercase tracking-widest">DRAG_DROP_OR_CLICK</div>
+        <div className="absolute bottom-4 right-4 monoscale text-[8px] font-bold opacity-10 uppercase tracking-widest">PORT_READY</div>
       </div>
 
       <AnimatePresence>
         {files.length > 0 && (
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white border-2 border-black overflow-hidden shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]"
+            className="glass-panel lathed-border overflow-hidden shadow-2xl relative"
           >
-            <div className="p-6 border-b-2 border-black bg-[#F0F0EE] flex items-center justify-between">
+            <div className="p-6 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span className="monoscale text-[11px] font-black uppercase tracking-widest">Extraction Buffer ({files.length})</span>
+                <div className="w-2 h-2 bg-cyan rounded-full animate-pulse shadow-[0_0_10px_rgba(34,211,238,1)]" />
+                <span className="monoscale text-[10px] font-bold uppercase tracking-[0.3em] text-cyan">Inbound_Queue ({files.length})</span>
               </div>
               {!uploading && (
                 <button 
                   onClick={uploadAll}
-                  className="bg-black text-white text-[10px] font-black uppercase tracking-widest py-3 px-8 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                  className="bg-cyan text-black text-[9px] font-bold uppercase tracking-[0.2em] py-3 px-8 rounded-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.3)]"
                 >
                   <Cpu className="w-4 h-4" />
-                  Initiate Mining
+                  Initiate_Mining
                 </button>
               )}
             </div>
             
-            <div className="max-h-[400px] overflow-y-auto divide-y-2 divide-black/5">
+            <div className="max-h-[400px] overflow-y-auto divide-y divide-white/5 custom-scrollbar">
               {files.map((file, i) => (
-                <div key={i} className="p-6 flex items-center justify-between group hover:bg-[#F8F8F8] transition-colors">
-                  <div className="flex items-center gap-6">
-                    <div className="p-3 bg-black/5 text-black">
+                <div key={i} className="p-6 flex items-center justify-between group hover:bg-white/[0.02] transition-colors relative">
+                  <div className="flex items-center gap-6 relative z-10">
+                    <div className="p-3 bg-white/5 text-white/40 group-hover:text-cyan group-hover:bg-cyan/10 transition-all rounded-xl">
                       {file.type.startsWith('video') ? <Video className="w-5 h-5" /> : 
                        file.type.startsWith('audio') ? <Music className="w-5 h-5" /> :
                        <FileText className="w-5 h-5" />}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-black uppercase tracking-tight truncate max-w-[300px]">{file.name}</span>
-                      <span className="text-[10px] monoscale font-black text-black/40 uppercase tracking-widest mt-1">
+                      <span className="text-sm font-bold uppercase tracking-tight truncate max-w-[300px] text-white/80">{file.name}</span>
+                      <span className="text-[10px] monoscale font-medium text-white/20 uppercase tracking-widest mt-1">
                         {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[1]?.toUpperCase() || 'DATA'}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6 relative z-10">
                     {progress[file.name] ? (
                       <div className="flex items-center gap-4">
                         {progress[file.name] === 'COMPLETED' ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          <CheckCircle2 className="w-5 h-5 text-cyan" />
                         ) : progress[file.name] === 'FAILED' ? (
                           <AlertCircle className="w-5 h-5 text-red-500" />
                         ) : (
-                          <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                          <div className="w-4 h-4 border border-cyan/20 border-t-cyan rounded-full animate-spin" />
                         )}
-                        <span className="monoscale text-[10px] font-black text-black/60 uppercase tracking-widest">{progress[file.name]}</span>
+                        <span className={`monoscale text-[9px] font-bold uppercase tracking-widest ${
+                          progress[file.name] === 'COMPLETED' ? 'text-cyan' : 'text-white/40'
+                        }`}>{progress[file.name]}</span>
                       </div>
                     ) : (
                       <button 
                         disabled={uploading}
                         onClick={() => removeFile(i)}
-                        className="p-2 border border-black/10 hover:bg-black hover:text-white transition-all text-black/30"
+                        className="p-2 border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 transition-all rounded-lg text-white/10"
                       >
                         <X className="w-5 h-5" />
                       </button>

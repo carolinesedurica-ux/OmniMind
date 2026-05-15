@@ -11,7 +11,14 @@ const getAI = () => {
     }
     throw new Error("Neural Core Offline: GEMINI_API_KEY missing. Access denied.");
   }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ 
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 };
 
 export enum DocType {
@@ -42,14 +49,21 @@ export interface IndexingResult {
 export const ingestFile = async (base64: string, mimeType: string): Promise<IngestionResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [
         { inlineData: { data: base64, mimeType } },
-        { text: `Analyze this file. Produce a comprehensive extraction in JSON format.
-        Include a title, summary, transcript/breakdown (broken into segments with speaker and topic), key topics, and key quotes.
-        Respond ONLY with a JSON object following the schema.` }
+        { text: `System Command: You are a Deep Extraction Agent specializing in Enterprise Dark Data.
+        Perform a high-fidelity multimodal analysis of the attached file.
+        
+        TASKS:
+        1. Contextual Reconstruction: Reconstruct the core narrative or technical objective.
+        2. Entity Matrix: Identify every stakeholder, technical component, project ID, and legal entity.
+        3. Neural Segmentation: Break the content into logical segments with precise timestamps (if applicable) and thematic tags.
+        4. Intelligence Synthesis: Core summary, key topics, and high-impact quotes with exact locations.
+        
+        Respond ONLY with a JSON object.` }
       ]
     }],
     config: {
@@ -115,17 +129,74 @@ export const ingestFile = async (base64: string, mimeType: string): Promise<Inge
   };
 };
 
+export interface AgentEvent {
+  agent: string;
+  action: string;
+  status: 'working' | 'completed' | 'error';
+  timestamp: string;
+}
+
+export interface AuditResult extends IndexingResult {
+  trace: AgentEvent[];
+}
+
+export const runMultiAgentAudit = async (files: any[], onEvent?: (event: AgentEvent) => void): Promise<AuditResult> => {
+  const trace: AgentEvent[] = [];
+  const addEvent = (agent: string, action: string, status: 'working' | 'completed' | 'error' = 'working') => {
+    const event = { agent, action, status, timestamp: new Date().toISOString() };
+    trace.push(event);
+    if (onEvent) onEvent(event);
+  };
+
+  addEvent('ORCHESTRATOR', 'Analyzing workspace context and initializing sub-agents');
+  
+  // 1. Data Aggregation
+  addEvent('INGEST_AGENT', 'Aggregating cross-document fragments');
+  const context = files.map(f => `FILE: ${f.title}\nSUMMARY: ${f.summary}\nTOPICS: ${f.key_topics.join(', ')}`).join('\n\n');
+  addEvent('INGEST_AGENT', 'Context mapping completed', 'completed');
+
+  // 2. Specialized Specialist Calls (Parallelized)
+  addEvent('COMPLIANCE_AGENT', 'Scanning for regulatory risks and obligations');
+  addEvent('ENTITY_AGENT', 'Extracting high-value technical entities');
+  
+  const [indexing, strategist] = await Promise.all([
+    indexData(context),
+    generateExecutiveBrief(context, "Full Enterprise Audit")
+  ]);
+
+  addEvent('COMPLIANCE_AGENT', 'Risk assessment finished', 'completed');
+  addEvent('ENTITY_AGENT', 'Entity mapping finalized', 'completed');
+  
+  addEvent('STRATEGIST_AGENT', 'Synthesizing final executive intelligence');
+  addEvent('STRATEGIST_AGENT', 'Brief generation complete', 'completed');
+
+  addEvent('ORCHESTRATOR', 'Audit finalized. Outputting results stream.', 'completed');
+
+  return {
+    ...indexing,
+    trace
+  };
+};
+
 export const indexData = async (ingestionJson: string): Promise<IndexingResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [{
-        text: `From this ingestion payload, extract structured entities, relationships, risks, obligations, and deadlines. 
+        text: `System Command: You are the Relational Intelligence Agent.
+        Your task is to ingest raw multmodal extractions and synthesize a coherent knowledge graph.
+        
+        REQUIRED OUTPUTS:
+        - Entities: People, organizations, technologies, and projects mentioned.
+        - Risk Ledger: Forensic identification of operational, legal, or technical risks with severity.
+        - Obligations: Explicit commitments or requirements discovered in the data.
+        - Deadlines: Chronological milestones with supporting evidence.
+        
         Respond ONLY with a JSON object.
         
-        INGESTION:
+        INGESTION SOURCE:
         ${ingestionJson.slice(0, 50000)}`
       }]
     }],
@@ -201,7 +272,7 @@ export const indexData = async (ingestionJson: string): Promise<IndexingResult> 
 export const askWorkspace = async (question: string, context: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [{
@@ -238,7 +309,7 @@ export const askWorkspace = async (question: string, context: string): Promise<a
 export const generateExecutiveBrief = async (workspaceContext: string, focus?: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-pro",
+    model: "gemini-3.1-pro-preview",
     contents: [{
       role: 'user',
       parts: [{

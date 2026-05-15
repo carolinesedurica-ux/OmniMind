@@ -18,7 +18,58 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSeedDemo = async () => {
+    if (!user || isSeeding) return;
+    setIsSeeding(true);
+    setError(null);
+    try {
+      // 1. Create Workspace
+      const docRef = await addDoc(collection(db, 'workspaces'), {
+        name: "BIOHUB_OMEGA_AUDIT",
+        vertical: "scientific",
+        description: "Synthetic biology risk assessment and research integration matrix.",
+        userId: user.uid,
+        collaborators: [],
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Add Dummy Files with Ingestion Data
+      const demoFiles = [
+        {
+          title: "VACCINE_PROTOCOL_04.PDF",
+          doc_type: "pdf",
+          summary: "Phase 3 safety report for synthetic lipid nanoparticle delivery.",
+          key_topics: ["Lipid Chemistry", "Safety Protocol", "Bio-Distribution"],
+          key_quotes: [{ text: "No significant adverse reactions noted in Cluster A.", location: "Page 42" }]
+        },
+        {
+          title: "LAB_SURVEILLANCE_ROOM_12.MP4",
+          doc_type: "video",
+          summary: "Automated lab footage from May 14 session.",
+          key_topics: ["Operational Security", "Thermal Variance", "Protocol Adherence"],
+          key_quotes: [{ text: "Temperature shift detected at 14:22:01.", location: "04:12" }]
+        }
+      ];
+
+      for (const file of demoFiles) {
+        await addDoc(collection(db, 'workspaces', docRef.id, 'files'), {
+          ...file,
+          status: 'PROCESSED',
+          userId: user.uid,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      onSelect(docRef.id);
+    } catch (err: any) {
+      setError("Failed to seed demo node: " + err.message);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
   const [newName, setNewName] = useState('');
   const [newVertical, setNewVertical] = useState('m&a');
 
@@ -170,12 +221,22 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
               <p className="monoscale text-[14px] font-medium tracking-[0.4em] uppercase text-white/20">
                 No active neural clusters detected.
               </p>
-              <button 
-                onClick={() => setIsCreating(true)}
-                className="bg-white/5 text-white/60 px-12 py-5 rounded-2xl hover:bg-white/10 transition-all border border-white/10 monoscale text-[11px] font-medium tracking-[0.3em]"
-              >
-                Launch Protocol_Alpha
-              </button>
+              <div className="flex gap-6">
+                <button 
+                  onClick={() => setIsCreating(true)}
+                  className="bg-white/5 text-white/60 px-12 py-5 rounded-2xl hover:bg-white/10 transition-all border border-white/10 monoscale text-[11px] font-medium tracking-[0.3em]"
+                >
+                  Launch Protocol_Alpha
+                </button>
+                <button 
+                  onClick={handleSeedDemo}
+                  disabled={isSeeding}
+                  className="bg-cyan/10 text-cyan px-12 py-5 rounded-2xl hover:bg-cyan hover:text-black transition-all border border-cyan/20 monoscale text-[11px] font-bold tracking-[0.3em] flex items-center gap-3 group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="relative z-10">{isSeeding ? 'Seeding...' : 'Run_Protocol_Omega (Demo)'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

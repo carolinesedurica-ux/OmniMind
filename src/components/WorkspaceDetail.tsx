@@ -33,7 +33,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import FileUpload from './FileUpload';
-import { askWorkspace, generateExecutiveBrief } from '../services/aiService';
+import { askWorkspace, generateExecutiveBrief, runMultiAgentAudit } from '../services/aiService';
 import { handleFirestoreError, OperationType } from '../lib/error-utils';
 
 interface WorkspaceDetailProps {
@@ -62,6 +62,28 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
   // Brief Generation State
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Neural Audit State
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditTrace, setAuditTrace] = useState<any[]>([]);
+
+  const handleEnterpriseAudit = async () => {
+    if (files.length === 0) return;
+    setIsAuditing(true);
+    setAuditTrace([]);
+    try {
+      const result = await runMultiAgentAudit(files, (event) => {
+        setAuditTrace(prev => [...prev, event]);
+      });
+      console.log('Neural Audit Complete:', result);
+      // Automatically switch to diagnostics/analysis tab if needed
+      setActiveTab('matrix');
+    } catch (err) {
+      console.error('Neural Audit Error:', err);
+    } finally {
+      setIsAuditing(false);
+    }
+  };
 
   // Process files into chart data
   const chartData = React.useMemo(() => {
@@ -303,6 +325,15 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           </div>
           
           <div className="hidden lg:flex gap-16 pt-2 h-full items-center">
+            <button 
+              onClick={handleEnterpriseAudit}
+              disabled={isAuditing || files.length === 0}
+              className="flex items-center gap-3 px-6 py-3 bg-cyan/10 border border-cyan/20 rounded-xl monoscale text-[9px] font-bold uppercase tracking-[0.2em] text-cyan hover:bg-cyan hover:text-black transition-all disabled:opacity-30 group relative overflow-hidden mr-4"
+            >
+              <div className="absolute inset-0 bg-cyan/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Zap className={`w-3.5 h-3.5 relative z-10 ${isAuditing ? 'animate-spin' : ''}`} />
+              <span className="relative z-10">{isAuditing ? 'Auditing...' : 'Run_Audit'}</span>
+            </button>
             <div className="flex flex-col items-end border-r border-white/5 pr-16">
               <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Active_Nodes</span>
               <span className="text-3xl font-bold text-white tracking-tighter">{files.length}</span>
@@ -332,6 +363,67 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           ))}
         </div>
       </div>
+
+      {/* Audit Progress Overlay / Sidebar (Trace) */}
+      <AnimatePresence>
+        {isAuditing && (
+          <motion.div 
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed right-0 top-0 bottom-0 w-80 bg-[#050506]/95 backdrop-blur-3xl border-l border-white/5 z-[100] p-8 flex flex-col shadow-[-40px_0_100px_rgba(0,0,0,1)]"
+          >
+            <div className="flex items-center justify-between mb-10">
+               <h4 className="monoscale text-[10px] font-bold text-cyan uppercase tracking-[0.4em]">Neural_Trace</h4>
+               <div className="w-1.5 h-1.5 bg-cyan rounded-full animate-ping" />
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-2">
+               {auditTrace.map((event, i) => (
+                 <motion.div 
+                   key={i}
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className="space-y-2 group"
+                 >
+                   <div className="flex items-center justify-between">
+                     <span className={`monoscale text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${
+                       event.status === 'completed' ? 'bg-cyan/10 text-cyan' : 'bg-white/5 text-white/40'
+                     }`}>
+                       {event.agent}
+                     </span>
+                     <span className="monoscale text-[7px] text-white/10 uppercase tracking-tighter">
+                       {new Date(event.timestamp).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
+                     </span>
+                   </div>
+                   <p className={`text-[11px] leading-snug tracking-tight font-medium ${
+                     event.status === 'completed' ? 'text-white/60 line-through decoration-cyan/30' : 'text-white/80'
+                   }`}>
+                     {event.action}...
+                   </p>
+                   {event.status === 'working' && (
+                     <div className="w-full h-px bg-white/5 overflow-hidden">
+                       <motion.div 
+                         initial={{ x: '-100%' }}
+                         animate={{ x: '100%' }}
+                         transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                         className="w-1/2 h-full bg-cyan/40"
+                       />
+                     </div>
+                   )}
+                 </motion.div>
+               ))}
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-white/5">
+               <div className="flex items-center gap-3 monoscale text-[8px] text-white/20 uppercase tracking-[0.3em]">
+                 <Layers className="w-3 h-3" />
+                 <span>Sub-Agent Handover: Active</span>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar relative">
