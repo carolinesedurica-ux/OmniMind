@@ -28,6 +28,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,15 +107,7 @@ export default function App() {
             </button>
 
             <button 
-              onClick={() => {
-                // Secret dev/demo door for judges
-                // We'll use a hardcoded dummy user if they click this?
-                // Actually, let's just make it clear they should authorize, 
-                // but if they can't, we show a helpful message.
-                // For now, I'll just add a "Play Strategy Demo" that maybe doesn't require auth?
-                // But full app needs auth for Firestore.
-                // I'll just add a note.
-              }}
+              onClick={() => setShowPreview(true)}
               className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/5 monoscale"
             >
               Protocol_Insight: Public_Preview
@@ -143,6 +136,106 @@ export default function App() {
             </div>
           </div>
         </motion.div>
+
+        {/* Global Preview Overlay */}
+        <AnimatePresence>
+          {showPreview && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-[#050506]/90 backdrop-blur-2xl"
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 30, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.9, y: 30, opacity: 0 }}
+                className="max-w-4xl w-full glass-panel lathed-border bg-white/[0.01] rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+              >
+                <div className="p-10 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
+                  <div>
+                    <h3 className="text-3xl font-bold tracking-tighter text-white uppercase italic">SYSTEM_BLUEPRINT_v0.9</h3>
+                    <p className="monoscale text-[9px] text-white/30 uppercase tracking-[0.3em] mt-1">Multi-Agent Neural Orchestration</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowPreview(false)}
+                    className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/40 hover:text-white"
+                  >
+                    <LogOut className="w-5 h-5 rotate-180" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
+                  <section className="space-y-6">
+                    <h4 className="monoscale text-[10px] font-bold text-cyan uppercase tracking-[0.4em]">Core_Logic_Flow</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                        <div className="w-10 h-10 bg-cyan/10 rounded-xl flex items-center justify-center text-cyan">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-white uppercase text-xs">Neural_Ingestion</h5>
+                        <p className="text-[11px] leading-relaxed text-white/40">Multimodal stream extraction via Gemini 1.5 Flash. Processing videos, audio, and documents in Parallel buffers.</p>
+                      </div>
+                      <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                        <div className="w-10 h-10 bg-violet/10 rounded-xl flex items-center justify-center text-violet-400">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-white uppercase text-xs">Agent_Matrix</h5>
+                        <p className="text-[11px] leading-relaxed text-white/40">Orchestrator Agent dispatches tasks to Specialist Nodes (Compliance, Risk, Entity) using Gemini 1.5 Pro reasoning.</p>
+                      </div>
+                      <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                        <div className="w-10 h-10 bg-cyan/10 rounded-xl flex items-center justify-center text-cyan">
+                          <Brain className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-white uppercase text-xs">Knowledge_Synthesis</h5>
+                        <p className="text-[11px] leading-relaxed text-white/40">Strategic brief generation and relational knowledge graph reconstruction with real-time Firestore sync.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="space-y-6">
+                    <h4 className="monoscale text-[10px] font-bold text-cyan uppercase tracking-[0.4em]">Tech_Stack_Audit</h4>
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 space-y-4 font-mono text-[10px]">
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-white/40">FRAMEWORK</span>
+                        <span className="text-white">React 19 / Vite</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-white/40">MODEL_ORCHESTRATOR</span>
+                        <span className="text-cyan">Gemini 1.5 Pro</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-white/40">INFERENCE_SPEED</span>
+                        <span className="text-cyan">Gemini 1.5 Flash</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-white/40">PERSISTENCE</span>
+                        <span className="text-white">Cloud Firestore (Real-time)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/40">VISUALIZATION</span>
+                        <span className="text-white">Recharts / Framer Motion</span>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="p-10 border-t border-white/5 bg-white/[0.02] flex items-center justify-center">
+                  <button 
+                    onClick={() => {
+                      setShowPreview(false);
+                      handleSignIn();
+                    }}
+                    className="flex items-center gap-4 px-10 py-4 bg-white text-black rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-cyan transition-all"
+                  >
+                    <span>Initiate Full Authorization</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
