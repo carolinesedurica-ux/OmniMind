@@ -49,7 +49,7 @@ export interface IndexingResult {
 export const ingestFile = async (base64: string, mimeType: string): Promise<IngestionResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash-exp",
     contents: [{
       role: 'user',
       parts: [
@@ -152,7 +152,7 @@ export const runMultiAgentAudit = async (files: any[], onEvent?: (event: AgentEv
   
   // 1. Data Aggregation
   addEvent('INGEST_AGENT', 'Aggregating cross-document fragments');
-  const context = files.map(f => `FILE: ${f.title}\nSUMMARY: ${f.summary}\nTOPICS: ${f.key_topics.join(', ')}`).join('\n\n');
+  const context = files.map(f => `FILE: ${f.title}\nSUMMARY: ${f.summary}\nTOPICS: ${(f.key_topics || []).join(', ')}`).join('\n\n');
   addEvent('INGEST_AGENT', 'Context mapping completed', 'completed');
 
   // 2. Specialized Specialist Calls (Parallelized)
@@ -181,7 +181,7 @@ export const runMultiAgentAudit = async (files: any[], onEvent?: (event: AgentEv
 export const indexData = async (ingestionJson: string): Promise<IndexingResult> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash-exp",
     contents: [{
       role: 'user',
       parts: [{
@@ -272,7 +272,7 @@ export const indexData = async (ingestionJson: string): Promise<IndexingResult> 
 export const askWorkspace = async (question: string, context: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash-exp",
     contents: [{
       role: 'user',
       parts: [{
@@ -309,7 +309,7 @@ export const askWorkspace = async (question: string, context: string): Promise<a
 export const generateExecutiveBrief = async (workspaceContext: string, focus?: string): Promise<any> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-pro",
+    model: "gemini-2.0-flash-exp",
     contents: [{
       role: 'user',
       parts: [{
