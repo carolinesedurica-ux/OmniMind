@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 
+console.log("[SERVER_INIT] Orchestration Layer Loading...");
+
 dotenv.config();
 
 // Initialize Gemini
@@ -46,8 +48,8 @@ async function startServer() {
     next();
   });
 
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", app: "OmniMind API" });
+  app.get("/api/ai/health", (req, res) => {
+    res.json({ status: "ok", gateway: "Neural Matrix", ai_available: !!ai });
   });
 
   // Gemini Proxy Endpoint
@@ -60,11 +62,9 @@ async function startServer() {
       const { model, contents, config } = req.body;
       
       // Map models to robust versions according to skill guidelines
-      // gemini flash: 'gemini-3-flash-preview'
-      // gemini pro: 'gemini-3.1-pro-preview'
       const modelName = model?.includes('pro') ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
       
-      console.log(`AI_REQUEST: Model=${modelName}`);
+      console.log(`[AI_GATEWAY] ${req.ip} -> Requesting ${modelName}`);
       
       const response = await ai.models.generateContent({
         model: modelName,
@@ -78,13 +78,15 @@ async function startServer() {
         throw new Error("AI Protocol returned empty response sequence.");
       }
 
+      console.log(`[AI_GATEWAY] ${modelName} -> Response Success (${text.length} chars)`);
       res.json({ text });
     } catch (error: any) {
-      console.error("Neural Execution Error:", error);
+      console.error("[AI_GATEWAY_ERROR]", error);
       const status = error.message?.includes('quota') || error.message?.includes('429') ? 429 : 500;
       res.status(status).json({ 
         error: error.message || "Neural Core Sync Failure",
-        protocol: "GEMINI_v3_PREVIEW"
+        protocol: "GEMINI_v3_PREVIEW",
+        code: error.status || status
       });
     }
   });

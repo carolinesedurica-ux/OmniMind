@@ -96,7 +96,7 @@ export default function App() {
             Advanced neural orchestration for enterprise dark data. Synthesize multi-dimensional records into actionable intelligence.
           </p>
           
-          <div className="w-full space-y-4 max-w-xs">
+          <div className="w-full space-y-4 max-w-xs relative z-30">
             <button 
               onClick={handleSignIn}
               className="w-full bg-white text-black py-5 rounded-xl font-bold text-xs tracking-[0.2em] uppercase hover:bg-cyan hover:text-black transition-all flex items-center justify-center gap-4 group lathed-border relative overflow-hidden"
@@ -111,7 +111,8 @@ export default function App() {
                 console.log("Protocol Insight Requested");
                 setShowPreview(true);
               }}
-              className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/10 monoscale relative z-30"
+              id="protocol-insight-btn"
+              className="w-full bg-white/5 text-white/40 py-4 rounded-xl font-bold text-[9px] tracking-[0.3em] uppercase hover:bg-white/10 hover:text-white transition-all border border-white/10 monoscale relative z-40 cursor-pointer pointer-events-auto"
             >
               Protocol_Insight: Public_Preview
             </button>

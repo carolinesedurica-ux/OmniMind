@@ -18,7 +18,7 @@ const callAI = async (payload: any): Promise<{ text: string }> => {
 
 export const ingestFile = async (base64: string, mimeType: string): Promise<IngestionResult> => {
   const response = await callAI({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [
@@ -90,7 +90,7 @@ export const runMultiAgentAudit = async (files: any[], onEvent?: (event: AgentEv
 
 export const indexData = async (ingestionJson: string): Promise<IndexingResult> => {
   const response = await callAI({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [{
@@ -126,7 +126,7 @@ export const indexData = async (ingestionJson: string): Promise<IndexingResult> 
 
 export const askWorkspace = async (question: string, context: string): Promise<any> => {
   const response = await callAI({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     contents: [{
       role: 'user',
       parts: [{
@@ -143,7 +143,7 @@ export const askWorkspace = async (question: string, context: string): Promise<a
 
 export const generateExecutiveBrief = async (workspaceContext: string, focus?: string): Promise<any> => {
   const response = await callAI({
-    model: "gemini-1.5-pro",
+    model: "gemini-3.1-pro-preview",
     contents: [{
       role: 'user',
       parts: [{
