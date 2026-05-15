@@ -66,20 +66,49 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
   // Neural Audit State
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditTrace, setAuditTrace] = useState<any[]>([]);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   const handleEnterpriseAudit = async () => {
     if (files.length === 0) return;
     setIsAuditing(true);
     setAuditTrace([]);
+    setAuditError(null);
     try {
       const result = await runMultiAgentAudit(files, (event) => {
         setAuditTrace(prev => [...prev, event]);
       });
       console.log('Neural Audit Complete:', result);
+      
+      // Persist findings to Firestore so they appearing in the UI
+      const savePromises = [];
+
+      // 1. Save Risks
+      if (result.risks && result.risks.length > 0) {
+        for (const risk of result.risks) {
+          savePromises.push(addDoc(collection(db, 'workspaces', workspaceId, 'risks'), {
+            ...risk,
+            createdAt: serverTimestamp()
+          }));
+        }
+      }
+
+      // 2. Save Entities
+      if (result.entities && result.entities.length > 0) {
+        for (const entity of result.entities) {
+          savePromises.push(addDoc(collection(db, 'workspaces', workspaceId, 'entities'), {
+            ...entity,
+            createdAt: serverTimestamp()
+          }));
+        }
+      }
+
+      await Promise.all(savePromises);
+      
       // Automatically switch to diagnostics/analysis tab if needed
       setActiveTab('matrix');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Neural Audit Error:', err);
+      setAuditError(err.message || 'Audit Protocol Failed');
     } finally {
       setIsAuditing(false);
     }
@@ -321,26 +350,26 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                 {workspace?.vertical?.replace('-', '_') || 'GENERAL'}
               </span>
             </div>
-            <h2 className="text-6xl font-bold tracking-tighter uppercase leading-none text-white">{workspace?.name || 'INITIALIZING...'}</h2>
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tighter uppercase leading-none text-white">{workspace?.name || 'INITIALIZING...'}</h2>
           </div>
           
-          <div className="hidden lg:flex gap-16 pt-2 h-full items-center">
+          <div className="flex gap-4 lg:gap-16 pt-2 h-full items-center">
             <button 
               onClick={handleEnterpriseAudit}
               disabled={isAuditing || files.length === 0}
-              className="flex items-center gap-3 px-6 py-3 bg-cyan/10 border border-cyan/20 rounded-xl monoscale text-[9px] font-bold uppercase tracking-[0.2em] text-cyan hover:bg-cyan hover:text-black transition-all disabled:opacity-30 group relative overflow-hidden mr-4"
+              className="flex items-center gap-3 px-4 md:px-6 py-3 bg-cyan/10 border border-cyan/20 rounded-xl monoscale text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-cyan hover:bg-cyan hover:text-black transition-all disabled:opacity-30 group relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-cyan/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Zap className={`w-3.5 h-3.5 relative z-10 ${isAuditing ? 'animate-spin' : ''}`} />
+              <Zap className={`w-3 h-3 md:w-3.5 md:h-3.5 relative z-10 ${isAuditing ? 'animate-spin' : ''}`} />
               <span className="relative z-10">{isAuditing ? 'Auditing...' : 'Run_Audit'}</span>
             </button>
-            <div className="flex flex-col items-end border-r border-white/5 pr-16">
-              <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Active_Nodes</span>
-              <span className="text-3xl font-bold text-white tracking-tighter">{files.length}</span>
+            <div className="hidden sm:flex flex-col items-end border-r border-white/5 pr-8 lg:pr-16">
+              <span className="monoscale text-[7px] md:text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Nodes</span>
+              <span className="text-xl md:text-3xl font-bold text-white tracking-tighter">{files.length}</span>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="monoscale text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Risk_Index</span>
-              <span className={`text-3xl font-bold tracking-tighter ${risks.length > 5 ? 'text-red-400 glow-red' : 'text-white'}`}>{risks.length}</span>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="monoscale text-[7px] md:text-[8px] font-medium text-white/20 uppercase tracking-[0.4em]">Risk</span>
+              <span className={`text-xl md:text-3xl font-bold tracking-tighter ${risks.length > 5 ? 'text-red-400 glow-red' : 'text-white'}`}>{risks.length}</span>
             </div>
           </div>
         </div>
@@ -375,8 +404,16 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
           >
             <div className="flex items-center justify-between mb-10">
                <h4 className="monoscale text-[10px] font-bold text-cyan uppercase tracking-[0.4em]">Neural_Trace</h4>
-               <div className="w-1.5 h-1.5 bg-cyan rounded-full animate-ping" />
+               <button onClick={() => setIsAuditing(false)} className="text-white/20 hover:text-white p-1">
+                 <X className="w-4 h-4" />
+               </button>
             </div>
+            
+            {auditError && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-[10px] monoscale uppercase tracking-widest leading-relaxed">
+                ERROR: {auditError}
+              </div>
+            )}
             
             <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-2">
                {auditTrace.map((event, i) => (
