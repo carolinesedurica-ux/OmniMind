@@ -8,12 +8,24 @@ const callAI = async (payload: any): Promise<{ text: string }> => {
     body: JSON.stringify(payload)
   });
   
+  const contentType = response.headers.get("content-type");
+  
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error || "Neural Core Communication Error");
+    if (contentType && contentType.includes("application/json")) {
+      const err = await response.json();
+      throw new Error(err.error || "Neural Core Communication Error");
+    } else {
+      const text = await response.text();
+      console.error("[NEURAL_SYNK_ERROR] Received non-JSON error response:", text.slice(0, 500));
+      throw new Error(`Neural Matrix Sync Failure: ${response.status} ${response.statusText}`);
+    }
   }
   
-  return response.json();
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  } else {
+    throw new Error("Neural Matrix returned protocol-incompatible format (Expected JSON)");
+  }
 };
 
 export const ingestFile = async (base64: string, mimeType: string): Promise<IngestionResult> => {

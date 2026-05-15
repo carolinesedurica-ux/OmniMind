@@ -43,14 +43,27 @@ async function startServer() {
 
   app.use(express.json({ limit: '100mb' }));
 
+  // Body parser error handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err instanceof SyntaxError && 'body' in err) {
+      console.error("[BODY_PARSER_ERROR] Malformed JSON in request body");
+      return res.status(400).json({ error: "Malformed JSON payload" });
+    }
+    next();
+  });
+
   app.use((req, res, next) => {
     console.log(`[REQUEST] ${new Date().toISOString()} ${req.method} ${req.url}`);
     next();
   });
 
-  // Diagnostic endpoint
+  // Diagnostic endpoints
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "online", system: "OmniMind Core", timestamp: new Date().toISOString() });
+  });
+
   app.get("/api/neural/health", (req, res) => {
-    console.log("[HEALTH_CHECK] Responding to health query");
+    console.log("[HEALTH_CHECK] Responding to neural health query");
     res.json({ 
       status: "online", 
       gateway: "OmniMind Neural Matrix", 
@@ -59,12 +72,12 @@ async function startServer() {
     });
   });
 
-  // Gemini Proxy Endpoint - Renamed for clarity and to avoid any potential proxy collision
+  // Gemini Proxy Endpoint
   app.post("/api/neural/generate", async (req, res) => {
-    console.log(`[AI_GATEWAY] Entering Generate Protocol: ${req.body?.model || 'default'}`);
+    console.log(`[AI_GATEWAY] Entering Generate Protocol: ${req.body?.model || 'unspecified'}`);
     try {
       if (!ai) {
-        console.error("[AI_GATEWAY] Error: GEMINI_API_KEY missing");
+        console.error("[AI_GATEWAY] Error: GEMINI_API_KEY missing or initialization failed");
         return res.status(503).json({ error: "Neural Core Offline: GEMINI_API_KEY is not configured." });
       }
 
@@ -101,10 +114,10 @@ async function startServer() {
     }
   });
 
-  // Catch-all for API routes to diagnose 404s
-  app.use("/api/*", (req, res) => {
-    console.warn(`[404_API] Unmatched API Route: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ error: `API Route Not Found: ${req.originalUrl}` });
+  // Explicitly catch all other API routes to prevent falling through to SPA fallback
+  app.all("/api/*", (req, res) => {
+    console.warn(`[404_API] Unmatched API Route: ${req.method} ${req.url}`);
+    res.status(404).json({ error: `API route ${req.method} ${req.url} not found` });
   });
 
   if (process.env.NODE_ENV !== "production") {

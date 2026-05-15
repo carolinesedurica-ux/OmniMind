@@ -582,8 +582,8 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                 <section className="glass-panel p-10 lathed-border relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-4 opacity-5 monoscale text-[8px]">INGESTION_VOLUME_METRICS</div>
                    <h5 className="monoscale text-[9px] font-bold text-cyan/30 uppercase tracking-[0.4em] mb-10">Ingestion_Timeline</h5>
-                   <div className="h-[350px] w-full min-h-[350px]">
-                     <ResponsiveContainer width="100%" height="100%">
+                   <div className="h-[350px] w-full min-h-[350px] relative">
+                     <ResponsiveContainer width="99%" height={350}>
                         <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                           <defs>
                             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
