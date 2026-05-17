@@ -41,104 +41,94 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Basic Body Parsing
   app.use(express.json({ limit: '100mb' }));
 
-  // Body parser error handler
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (err instanceof SyntaxError && 'body' in err) {
-      console.error("[BODY_PARSER_ERROR] Malformed JSON in request body");
-      return res.status(400).json({ error: "Malformed JSON payload" });
-    }
-    next();
-  });
-
+  // Global Request Logger - Focused on API and distinct events
   app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
+    const { method, url } = req;
+    const isApi = url.startsWith('/api/');
     
-    if (req.url.startsWith('/src/') || req.url.includes('errorHandlers') || req.url.includes('errorUtils') || req.url.includes('error-utils')) {
+    if (isApi) {
       const start = Date.now();
-      const referer = req.get('Referer');
+      const timestamp = new Date().toISOString();
+      console.log(`[API_REQ] ${timestamp} | ${method} | ${url}`);
+      
       res.on('finish', () => {
         const duration = Date.now() - start;
-        console.log(`[SRC_LOG] ${res.statusCode} | ${req.method} | ${req.url} | ${duration}ms | Ref: ${referer}`);
+        if (res.statusCode >= 400) {
+          console.error(`[API_ERR] ${res.statusCode} | ${method} | ${url} | ${duration}ms`);
+        } else {
+          console.log(`[API_END] ${res.statusCode} | ${method} | ${url} | ${duration}ms`);
+        }
       });
-    } else {
-      console.log(`[SYS] ${timestamp} | ${req.method} | ${req.url}`);
     }
     next();
   });
 
-  // Diagnostic endpoints
+  // API ROUTES - MUST BE BEFORE STATIC AND VITE
+  
   app.get("/api/health", (req, res) => {
     res.json({ status: "online", system: "OmniMind Core", timestamp: new Date().toISOString() });
   });
 
-  app.get("/api/neural/health", (req, res) => {
-    console.log("[HEALTH_CHECK] Responding to neural health query");
+  app.get("/api/diagnostic", (req, res) => {
     res.json({ 
-      status: "online", 
-      gateway: "OmniMind Neural Matrix", 
-      ai_available: !!ai,
+      status: "alive", 
+      time: new Date().toISOString(),
       env: process.env.NODE_ENV,
-      timestamp: new Date().toISOString()
+      ai_ready: !!ai
     });
   });
 
-  // Gemini Proxy Endpoint
   app.post("/api/neural/generate", async (req, res) => {
     const aiLogId = Math.random().toString(36).substring(7);
-    console.log(`[AI_GATEWAY][${aiLogId}] Entering Generate Protocol. Model=${req.body?.model || 'unspecified'}`);
+    console.log(`[AI_GATEWAY][${aiLogId}] POST Received. Model=${req.body?.model}`);
     
     try {
       if (!ai) {
-        console.error(`[AI_GATEWAY][${aiLogId}] Error: GEMINI_API_KEY missing or initialization failed`);
-        return res.status(503).json({ error: "Neural Core Offline: GEMINI_API_KEY is not configured." });
+        console.error(`[AI_GATEWAY][${aiLogId}] GEMINI_API_KEY missing`);
+        return res.status(503).json({ error: "Neural Core Offline: Configuration Missing" });
       }
 
       const { model, contents, config } = req.body;
-      
-      if (!contents || !Array.isArray(contents)) {
-        console.warn(`[AI_GATEWAY][${aiLogId}] Warning: Received invalid contents sequence`);
-        return res.status(400).json({ error: "Invalid contents sequence" });
-      }
+      if (!contents) return res.status(400).json({ error: "Missing contents" });
 
-      // Map models to robust versions according to skill guidelines
       const modelName = model?.includes('pro') ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
-      
-      console.log(`[AI_GATEWAY][${aiLogId}] Dispatching to Model=${modelName}`);
-      
+      console.log(`[AI_GATEWAY][${aiLogId}] Executing on ${modelName}`);
+
       const response = await ai.models.generateContent({
         model: modelName,
         contents: contents,
         config: config || {}
       });
 
-      const text = response.text;
-      
-      if (!text) {
-        console.warn(`[AI_GATEWAY][${aiLogId}] Warning: Received empty response from model`);
-        throw new Error("AI Protocol returned empty response sequence.");
-      }
-
-      console.log(`[AI_GATEWAY][${aiLogId}] Protocol Success: Received ${text.length} characters`);
-      res.json({ text });
+      res.json({ text: response.text });
+      console.log(`[AI_GATEWAY][${aiLogId}] Success sent`);
     } catch (error: any) {
       console.error(`[AI_GATEWAY_ERROR][${aiLogId}]`, error);
-      const status = error.message?.includes('quota') || error.message?.includes('429') ? 429 : 500;
-      res.status(status).json({ 
-        error: error.message || "Neural Core Sync Failure",
-        protocol: "GEMINI_v3_PREVIEW",
-        code: error.status || status
-      });
+      
+      const isQuotaError = error.message?.includes('RESOURCE_EXHAUSTED') || 
+                          error.message?.includes('429') || 
+                          error.status === 429;
+      
+      if (isQuotaError) {
+        return res.status(429).json({ 
+          error: "Neural Matrix Quota Exhausted (429). Upgrading to a paid tier in 'Settings > Secrets' increases your quota and enables advanced models." 
+        });
+      }
+
+      res.status(500).json({ error: error.message || "Neural Core Sync Failure" });
     }
   });
 
-  // Explicitly catch all other API routes to prevent falling through to SPA fallback
+  // Final catch-all for unknown /api/* requests
   app.all("/api/*", (req, res) => {
-    console.warn(`[404_API] Unmatched API Route: ${req.method} ${req.url}`);
-    res.status(404).json({ error: `API route ${req.method} ${req.url} not found` });
+    console.warn(`[API_MISS] 404 on ${req.method} ${req.url}`);
+    res.status(404).json({ error: "Route not found in Neural Core" });
   });
 
+  // VITE OR STATIC FALLBACKS AFTER API
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

@@ -91,9 +91,9 @@ export default function App() {
             </div>
           </div>
           
-          <h1 className="text-7xl font-black tracking-tighter mb-4 uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">OmniMind</h1>
+          <h1 className="text-7xl font-black tracking-tighter mb-4 uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Dark Data Miner</h1>
           <p className="text-white/40 mb-12 max-w-sm text-center font-medium text-sm leading-relaxed tracking-tight">
-            Advanced neural orchestration for enterprise dark data. Synthesize multi-dimensional records into actionable intelligence.
+            Advanced multi-agent orchestration for enterprise dark data. Map petabytes of video and technical documentation into actionable intelligence.
           </p>
           
           <div className="w-full space-y-4 max-w-xs relative z-30">
@@ -158,8 +158,8 @@ export default function App() {
               >
                 <div className="p-10 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
                   <div>
-                    <h3 className="text-3xl font-bold tracking-tighter text-white uppercase italic">SYSTEM_BLUEPRINT_v0.9</h3>
-                    <p className="monoscale text-[9px] text-white/30 uppercase tracking-[0.3em] mt-1">Multi-Agent Neural Orchestration</p>
+                    <h3 className="text-3xl font-bold tracking-tighter text-white uppercase italic">DARK_DATA_ORCHESTRATOR_v1.0</h3>
+                    <p className="monoscale text-[9px] text-white/30 uppercase tracking-[0.3em] mt-1">Enterprise Multi-Agent Pipeline</p>
                   </div>
                   <button 
                     onClick={() => setShowPreview(false)}
@@ -177,8 +177,8 @@ export default function App() {
                         <div className="w-10 h-10 bg-cyan/10 rounded-xl flex items-center justify-center text-cyan">
                           <Upload className="w-5 h-5" />
                         </div>
-                        <h5 className="font-bold text-white uppercase text-xs">Neural_Ingestion</h5>
-                        <p className="text-[11px] leading-relaxed text-white/40">Multimodal stream extraction via Gemini 1.5 Flash. Processing videos, audio, and documents in Parallel buffers.</p>
+                        <h5 className="font-bold text-white uppercase text-xs">Ingestion_Agent</h5>
+                        <p className="text-[11px] leading-relaxed text-white/40">Leverages Gemini 1.5 Pro's massive context window to natively ingest hours of video and thousands of PDF pages simultaneously.</p>
                       </div>
                       <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
                         <div className="w-10 h-10 bg-violet/10 rounded-xl flex items-center justify-center text-violet-400">
@@ -191,8 +191,8 @@ export default function App() {
                         <div className="w-10 h-10 bg-cyan/10 rounded-xl flex items-center justify-center text-cyan">
                           <Brain className="w-5 h-5" />
                         </div>
-                        <h5 className="font-bold text-white uppercase text-xs">Knowledge_Synthesis</h5>
-                        <p className="text-[11px] leading-relaxed text-white/40">Strategic brief generation and relational knowledge graph reconstruction with real-time Firestore sync.</p>
+                        <h5 className="font-bold text-white uppercase text-xs">Synthesis_Agent</h5>
+                        <p className="text-[11px] leading-relaxed text-white/40">Connects the dots across your entire dark data repository. Pinpoint exact moments in meetings and technical manuals.</p>
                       </div>
                     </div>
                   </section>
@@ -262,7 +262,7 @@ export default function App() {
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold tracking-tighter text-2xl uppercase leading-none text-white">OmniMind</span>
+              <span className="font-bold tracking-tighter text-2xl uppercase leading-none text-white">Dark Data Miner</span>
               <span className="monoscale text-[8px] font-medium tracking-[0.4em] text-white/20 uppercase leading-none mt-1">Enterprise Orchestration</span>
             </div>
           </button>

@@ -15,6 +15,7 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<{ [key: string]: string }>({});
+  const [fileErrors, setFileErrors] = useState<{ [key: string]: string }>({});
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);
@@ -62,17 +63,17 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
       });
 
       // 3. Ingest via AI Service
-      setProgress(prev => ({ ...prev, [file.name]: 'Analyzing Multimodal Stream...' }));
+      setProgress(prev => ({ ...prev, [file.name]: 'Ingestion Agent Mapping...' }));
       const ingestion = await ingestFile(base64, file.type);
       
       // Update with metadata
       await setDoc(fileRef, {
         ...ingestion,
-        status: 'indexing'
+        status: 'mapping'
       }, { merge: true });
 
       // Save segments
-      setProgress(prev => ({ ...prev, [file.name]: 'Indexing Entities...' }));
+      setProgress(prev => ({ ...prev, [file.name]: 'Extracting Strategic Moments...' }));
       if (ingestion && Array.isArray(ingestion.transcript_segments)) {
         for (const seg of ingestion.transcript_segments) {
           await addDoc(collection(db, 'workspaces', workspaceId, 'segments'), {
@@ -113,13 +114,15 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
       await setDoc(fileRef, { status: 'completed', processedAt: serverTimestamp() }, { merge: true });
       setProgress(prev => ({ ...prev, [file.name]: 'COMPLETED' }));
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setProgress(prev => ({ ...prev, [file.name]: 'FAILED' }));
+      setFileErrors(prev => ({ ...prev, [file.name]: errorMessage }));
       try {
         await setDoc(doc(db, 'workspaces', workspaceId, 'files', fileId), { 
           status: 'failed', 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: errorMessage 
         }, { merge: true });
       } catch (innerError) {
         handleFirestoreError(innerError, OperationType.WRITE, `workspaces/${workspaceId}/files/${fileId}`);
@@ -180,15 +183,16 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
                   className="bg-cyan text-black text-[9px] font-bold uppercase tracking-[0.2em] py-3 px-8 rounded-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.3)]"
                 >
                   <Cpu className="w-4 h-4" />
-                  Initiate_Mining
+                  Initiate_Dark_Mining
                 </button>
               )}
             </div>
             
             <div className="max-h-[400px] overflow-y-auto divide-y divide-white/5 custom-scrollbar">
               {files.map((file, i) => (
-                <div key={i} className="p-6 flex items-center justify-between group hover:bg-white/[0.02] transition-colors relative">
-                  <div className="flex items-center gap-6 relative z-10">
+                <div key={i} className="group hover:bg-white/[0.02] transition-colors relative">
+                  <div className="p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-6 relative z-10">
                     <div className="p-3 bg-white/5 text-white/40 group-hover:text-cyan group-hover:bg-cyan/10 transition-all rounded-xl">
                       {file.type.startsWith('video') ? <Video className="w-5 h-5" /> : 
                        file.type.startsWith('audio') ? <Music className="w-5 h-5" /> :
@@ -201,31 +205,45 @@ export default function FileUpload({ workspaceId }: FileUploadProps) {
                       </span>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-6 relative z-10">
-                    {progress[file.name] ? (
-                      <div className="flex items-center gap-4">
-                        {progress[file.name] === 'COMPLETED' ? (
-                          <CheckCircle2 className="w-5 h-5 text-cyan" />
-                        ) : progress[file.name] === 'FAILED' ? (
-                          <AlertCircle className="w-5 h-5 text-red-500" />
-                        ) : (
-                          <div className="w-4 h-4 border border-cyan/20 border-t-cyan rounded-full animate-spin" />
-                        )}
-                        <span className={`monoscale text-[9px] font-bold uppercase tracking-widest ${
-                          progress[file.name] === 'COMPLETED' ? 'text-cyan' : 'text-white/40'
-                        }`}>{progress[file.name]}</span>
-                      </div>
-                    ) : (
-                      <button 
-                        disabled={uploading}
-                        onClick={() => removeFile(i)}
-                        className="p-2 border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 transition-all rounded-lg text-white/10"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
+                    <div className="flex flex-col items-end gap-1 relative z-10">
+                      {progress[file.name] ? (
+                        <div className="flex items-center gap-4">
+                          {progress[file.name] === 'COMPLETED' ? (
+                            <CheckCircle2 className="w-5 h-5 text-cyan" />
+                          ) : progress[file.name] === 'FAILED' ? (
+                            <AlertCircle className="w-5 h-5 text-red-500" />
+                          ) : (
+                            <div className="w-4 h-4 border border-cyan/20 border-t-cyan rounded-full animate-spin" />
+                          )}
+                          <span className={`monoscale text-[9px] font-bold uppercase tracking-widest ${
+                            progress[file.name] === 'COMPLETED' ? 'text-cyan' : 
+                            progress[file.name] === 'FAILED' ? 'text-red-400' : 'text-white/40'
+                          }`}>{progress[file.name]}</span>
+                        </div>
+                      ) : (
+                        <button 
+                          disabled={uploading}
+                          onClick={() => removeFile(i)}
+                          className="p-2 border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 transition-all rounded-lg text-white/10"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {progress[file.name] === 'FAILED' && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      className="px-6 pb-6 pt-2"
+                    >
+                      <div className="p-4 bg-red-500/10 border border-red-500/10 rounded-lg">
+                        <p className="text-[10px] text-red-400 font-medium leading-relaxed italic">
+                          PROTOCOL_ERROR: {fileErrors[file.name] || 'Critical failure in Neural Core. Please verify API configuration in Settings.'}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               ))}
             </div>

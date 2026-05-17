@@ -1,6 +1,6 @@
 {
-  "name": "OmniMind",
-  "description": "Enterprise Knowledge Orchestrator featuring multi-agent neural pipelines for synthesizing corporate dark data into actionable intelligence via Gemini Pro & Flash.",
+  "name": "Dark Data Miner",
+  "description": "Enterprise Knowledge Orchestrator for mapping and synthesizing corporate dark data (Video, PDF, Audio) using Gemini 1.5 Pro's massive context window.",
   "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API", "Multimodal Analysis", "Agentic Workflows", "Document Synthesis"]
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API", "Large Context Multimodal Analysis", "Synthesis Agent", "Ingestion Agent"]
 }

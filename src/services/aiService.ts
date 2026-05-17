@@ -42,14 +42,14 @@ export const ingestFile = async (base64: string, mimeType: string): Promise<Inge
       role: 'user',
       parts: [
         { inlineData: { data: base64, mimeType } },
-        { text: `System Command: You are a Deep Extraction Agent specializing in Enterprise Dark Data.
-        Perform a high-fidelity multimodal analysis of the attached file.
+        { text: `System Command: You are the Ingestion Agent for the Dark Data Miner.
+        Your mission is to perform high-fidelity native ingestion of this file using Gemini's massive context window.
         
         TASKS:
-        1. Contextual Reconstruction: Reconstruct the core narrative or technical objective.
-        2. Entity Matrix: Identify every stakeholder, technical component, project ID, and legal entity.
-        3. Neural Segmentation: Break the content into logical segments with precise timestamps (if applicable) and thematic tags.
-        4. Intelligence Synthesis: Core summary, key topics, and high-impact quotes with exact locations.
+        1. Contextual Reconstruction: Reconstruct the core narrative or technical objective of the dark data.
+        2. Entity Matrix: forensic identification of stakeholders, technical components, and project IDs.
+        3. Strategic Segmentation: Logical chunks with precise timestamps (if video/audio) or page references.
+        4. Intelligence Synthesis: Summary, key topics, and high-impact quotes with exact coordinates.
         
         Respond ONLY with a JSON object.` }
       ]
@@ -149,7 +149,19 @@ export const askWorkspace = async (question: string, context: string): Promise<a
     contents: [{
       role: 'user',
       parts: [{
-        text: `QUESTION: ${question}\n\nCONTEXT:\n${context.slice(0, 80000)}\n\nProvide grounded answer with citations. JSON format.`
+        text: `System Command: You are the Synthesis Agent for the Dark Data Miner.
+        Connect the dots across the provided corporate dark data context.
+        
+        OBJECTIVE: Answer the user question with extreme precision. 
+        If the data involves video or audio, pinpoint EXACT moments (timestamps).
+        If the data involves documents, pinpoint EXACT citations.
+        
+        QUESTION: ${question}
+        
+        DARK DATA CONTEXT:
+        ${context.slice(0, 100000)}
+        
+        Respond ONLY with a JSON object containing { answer: string, confidence: string, citations: Array<{location: string, quote: string, why: string}> }.`
       }]
     }],
     config: {

@@ -306,7 +306,7 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
         ${segments.slice(0, 30).map(s => `[${s.start}] ${s.text}`).join('\n')}
       `;
 
-      const brief = await generateExecutiveBrief(workspaceContext);
+      const brief = await generateExecutiveBrief(workspaceContext, "Strategic synthesis for Dark Data Miner");
       await addDoc(collection(db, 'workspaces', workspaceId, 'briefs'), {
         ...brief,
         createdAt: serverTimestamp()
@@ -319,11 +319,11 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
   };
 
   const tabs = [
-    { id: 'mining', label: 'Multimodal Ingestion', icon: Activity },
-    { id: 'feed', label: 'Neural Stream', icon: Clock },
-    { id: 'matrix', label: 'Knowledge Matrix', icon: Layers },
-    { id: 'neural', label: 'Dark Synthesis', icon: Brain },
-    { id: 'briefs', label: 'Executive Intelligence', icon: ShieldCheck },
+    { id: 'mining', label: 'Ingestion Agent', icon: Activity },
+    { id: 'feed', label: 'Dark Stream', icon: Clock },
+    { id: 'matrix', label: 'Entity Matrix', icon: Layers },
+    { id: 'neural', label: 'Synthesis Agent', icon: Brain },
+    { id: 'briefs', label: 'Strategic Intel', icon: ShieldCheck },
     { id: 'collaborators', label: 'Access Control', icon: Users },
   ];
 
@@ -704,10 +704,10 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                              <Brain className="w-6 h-6 text-violet animate-pulse" />
                            </div>
                            <div className="flex flex-col gap-1">
-                             <span className="monoscale font-bold text-[10px] uppercase tracking-[0.4em] text-white/30">Synthesis_Kernel_Output</span>
+                             <span className="monoscale font-bold text-[10px] uppercase tracking-[0.4em] text-white/30">Synthesis_Agent_Output</span>
                              <div className="flex items-center gap-4">
                                <span className="monoscale text-[9px] font-bold text-violet/60 uppercase tracking-widest border border-violet/20 px-2 py-0.5 rounded">Confidence: {chat.confidence}</span>
-                               <span className="monoscale text-[8px] font-medium text-white/10 uppercase tracking-widest">ENCRYPTED_STREAM_SECURE</span>
+                               <span className="monoscale text-[8px] font-medium text-white/10 uppercase tracking-widest">DARK_DATA_MINER_SECURE_V1</span>
                              </div>
                            </div>
                         </div>
@@ -755,8 +755,8 @@ export default function WorkspaceDetail({ user, workspaceId, onBack }: Workspace
                       <div className="absolute inset-0 bg-violet/20 blur-[80px] rounded-full group-hover:bg-violet/30 transition-all duration-1000" />
                       <Brain className="w-24 h-24 text-white/10 group-hover:text-white/20 transition-all relative z-10 animate-pulse duration-[4000ms]" />
                     </div>
-                    <p className="monoscale text-xl font-bold text-white/10 uppercase tracking-[0.6em] group-hover:text-white/20 transition-all">Standby. Awaiting Query Input.</p>
-                    <p className="monoscale text-[9px] font-medium text-white/5 uppercase tracking-[0.3em] mt-6">Neural Synthesis Core Active v4.2.0</p>
+                    <p className="monoscale text-xl font-bold text-white/10 uppercase tracking-[0.6em] group-hover:text-white/20 transition-all">Standby. Synthesis Agent Listening.</p>
+                    <p className="monoscale text-[9px] font-medium text-white/5 uppercase tracking-[0.3em] mt-6">Dark Data Miner Core v1.0.0</p>
                   </div>
                 )}
               </div>

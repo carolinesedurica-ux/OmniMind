@@ -28,9 +28,9 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
     try {
       // 1. Create Workspace
       const docRef = await addDoc(collection(db, 'workspaces'), {
-        name: "BIOHUB_OMEGA_AUDIT",
+        name: "BIOHUB_DARK_ORCHESTRATOR",
         vertical: "scientific",
-        description: "Synthetic biology risk assessment and research integration matrix.",
+        description: "Mapping unsearchable lab footage and dense PDF manuals into a unified knowledge graph.",
         userId: user.uid,
         collaborators: [],
         createdAt: serverTimestamp()
@@ -39,18 +39,18 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
       // 2. Add Dummy Files with Ingestion Data
       const demoFiles = [
         {
-          title: "VACCINE_PROTOCOL_04.PDF",
+          title: "GENE_EDIT_PROTOCOL_v09.PDF",
           doc_type: "pdf",
-          summary: "Phase 3 safety report for synthetic lipid nanoparticle delivery.",
-          key_topics: ["Lipid Chemistry", "Safety Protocol", "Bio-Distribution"],
-          key_quotes: [{ text: "No significant adverse reactions noted in Cluster A.", location: "Page 42" }]
+          summary: "CRISPR-Cas9 safety benchmarks and thermal stability logs.",
+          key_topics: ["Genomic Risk", "Thermal Delta", "Safety Integrity"],
+          key_quotes: [{ text: "Neural drift detected in sample B-12 at 4s exposure.", location: "Page 112" }]
         },
         {
-          title: "LAB_SURVEILLANCE_ROOM_12.MP4",
+          title: "LAB_WALKTHROUGH_SECURITY.MP4",
           doc_type: "video",
-          summary: "Automated lab footage from May 14 session.",
-          key_topics: ["Operational Security", "Thermal Variance", "Protocol Adherence"],
-          key_quotes: [{ text: "Temperature shift detected at 14:22:01.", location: "04:12" }]
+          summary: "Continuous monitoring of the BSL-4 dark zone.",
+          key_topics: ["Security Breach", "Object Tracking", "Access Protocol"],
+          key_quotes: [{ text: "Unauthorized access detected in shadow zone.", location: "12:45" }]
         }
       ];
 
@@ -155,8 +155,8 @@ export default function WorkspaceList({ user, onSelect }: { user: any, onSelect:
     <div className="max-w-7xl mx-auto py-10">
       <div className="flex items-end justify-between mb-16 border-b border-white/5 pb-10">
         <div>
-          <span className="monoscale text-[10px] font-medium text-white/30 uppercase tracking-[0.5em] block mb-3">Available_Clusters</span>
-          <h2 className="text-6xl font-bold tracking-tighter uppercase leading-none text-white">Global Nodes</h2>
+          <span className="monoscale text-[10px] font-medium text-white/30 uppercase tracking-[0.5em] block mb-3">Active_Neural_Clusters</span>
+          <h2 className="text-6xl font-bold tracking-tighter uppercase leading-none text-white">Dark Data Hub</h2>
         </div>
         <button 
           onClick={() => setIsCreating(true)}
